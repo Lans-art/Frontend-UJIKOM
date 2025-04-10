@@ -31,6 +31,8 @@ axiosInstance.interceptors.response.use(
 
 export default axiosInstance;
 
+// const refreshToken = () => true;
+
 // ----------------------------------------------------------------------
 
 export const fetcher = async (args) => {
