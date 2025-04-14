@@ -76,6 +76,14 @@ const App = () => {
             }
           />
           <Route
+            path="/product/:id"
+            element={
+              <ProtectedRoute allowedRoles={["user"]}>
+                <ProductDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/cart"
             element={
               <ProtectedRoute allowedRoles={["user"]}>
@@ -84,7 +92,7 @@ const App = () => {
             }
           />
           <Route
-            path="/checkout"
+            path="/cart/checkout"
             element={
               <ProtectedRoute allowedRoles={["user"]}>
                 <Checkout />
@@ -104,14 +112,6 @@ const App = () => {
             element={
               <ProtectedRoute allowedRoles={["user"]}>
                 <UserProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/product/:id"
-            element={
-              <ProtectedRoute allowedRoles={["user"]}>
-                <ProductDetail />
               </ProtectedRoute>
             }
           />

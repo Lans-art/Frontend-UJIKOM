@@ -1,5 +1,5 @@
-import React, {useState} from "react";
-import { Link, Outlet,} from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   UserCircle,
@@ -12,11 +12,14 @@ import {
 import axios from "axios";
 import Cookies from "js-cookie";
 
+function AdminPage() {
+  const location = useLocation();
+  const [activePage, setActivePage] = useState(location.pathname);
 
-
-function AdminPage  ()  {
-  const [activePage, setActivePage] = useState("/"); 
-
+  // Update activePage when location changes
+  useEffect(() => {
+    setActivePage(location.pathname);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -34,26 +37,37 @@ function AdminPage  ()  {
     window.location.href = "/";
   };
 
+  // Updated sidebar links to match your route configuration
   const sidebarLinks = [
-    { key: "admin", path: "/", icon: LayoutDashboard, label: "Dashboard" },
-    { key: "profile", path: "admin/profile", icon: UserCircle, label: "Profile" },
-    { key: "dataaccount", path: "dataaccount", icon: Users, label: "Data Account" },
+    { key: "admin", path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+    {
+      key: "profile",
+      path: "/admin/admin/profile",
+      icon: UserCircle,
+      label: "Profile",
+    },
+    {
+      key: "dataaccount",
+      path: "/admin/dataaccount",
+      icon: Users,
+      label: "Data Account",
+    },
     {
       key: "dataartikel",
-      path: "dataartikel",
+      path: "/admin/dataartikel",
       icon: FileText,
       label: "Data Artikel",
     },
     {
       key: "confirmaccount",
-      path: "confirmaccount",
+      path: "/admin/confirmaccount",
       icon: FileText,
       label: "Konfirmasi Account",
     },
-    { key: "chat", path: "chat", icon: MessageSquare, label: "Chat" },
+    { key: "chat", path: "/admin/chat", icon: MessageSquare, label: "Chat" },
     {
       key: "history",
-      path: "history",
+      path: "/admin/history",
       icon: History,
       label: "History Transaksi",
     },
@@ -69,13 +83,12 @@ function AdminPage  ()  {
         <nav className="mt-8">
           {sidebarLinks.map((link) => {
             const Icon = link.icon;
-            const isActive = activePage === link.path;
+            const isActive = location.pathname === link.path;
 
             return (
               <Link
                 key={link.path}
                 to={link.path}
-                onClick={() => setActivePage(link.path)}
                 className={`flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors ${
                   isActive
                     ? "bg-indigo-50 text-indigo-600 border-r-4 border-indigo-600"
@@ -105,6 +118,6 @@ function AdminPage  ()  {
       </main>
     </div>
   );
-};
+}
 
 export default AdminPage;

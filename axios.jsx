@@ -6,10 +6,13 @@ export const HOST_API = import.meta.env.VITE_HOST_API;
 
 const axiosInstance = axios.create({
   baseURL: HOST_API,
-  withCredentials: true, // kalau kamu pakai cookie, ini tetap true
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
 });
 
-// REQUEST INTERCEPTOR: Tambahkan Authorization token
+// REQUEST INTERCEPTOR: Add Authorization token
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = Cookies.get("token");
@@ -31,8 +34,6 @@ axiosInstance.interceptors.response.use(
 
 export default axiosInstance;
 
-// const refreshToken = () => true;
-
 // ----------------------------------------------------------------------
 
 export const fetcher = async (args) => {
@@ -52,10 +53,24 @@ export const endpoints = {
     register: "/api/register",
     logout: "/api/logout",
   },
+  detail: {
+    detailAccount: "/api/sellaccount",
+  },
   crudArticle: {
-    create: "/api/article",
+    list: "/api/articles",
+    articles: "/api/articles",
+    update: (id) => `/api/articles/${id}`,
+    delete: (id) => `/api/articles/${id}`,
+    articleToggleStatus: (id) => `/api/articles/toggle-status/${id}`,
+  },
+  crudAcccount: {
+    list: "/api/sellaccount",
+    detail: (id) => `/api/sellaccount/${id}`,
+    create: "/api/sellaccount",
+    update: (id) => `/api/sellaccount/${id}`,
+    delete: (id) => `/api/sellaccount/${id}`,
   },
   manageUser: {
-    getUser: "api/users",
+    getUser: "/api/user",
   },
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Edit2,
@@ -6,11 +6,19 @@ import {
   Plus,
   Eye,
   EyeOff,
-  X,
-  ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import DetailAccount from "./components/DetailAccount";
 import AccountFormModal from "./components/AccountFormModal";
+import {
+  getAccounts,
+  createAccount,
+  updateAccount,
+  deleteAccount,
+} from "../../services/accountservice";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 
 function DataGameAccount() {
   const [showPassword, setShowPassword] = useState({});
@@ -18,71 +26,77 @@ function DataGameAccount() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [gameFilter, setGameFilter] = useState("All Games");
+  const [serverFilter, setServerFilter] = useState("All Servers");
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null);
 
   // Game-specific configurations
-  const gameConfigs = {
-    "Genshin Impact": {
-      levels: ["AR 10", "AR 20", "AR 30", "AR 40", "AR 50", "AR 55", "AR 60"],
-      features: [
-        "Character 5★",
-        "Weapon 5★",
-        "Limited Character",
-        "High Primogem",
-      ],
-      serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
-    },
-    "Honkai Star Rail": {
-      levels: [
-        "Trailblaze 1",
-        "Trailblaze 2",
-        "Trailblaze 3",
-        "Trailblaze 4",
-        "Trailblaze 5",
-        "Trailblaze 6",
-      ],
-      features: [
-        "Character 5★",
-        "Light Cone 5★",
-        "Limited Character",
-        "High Stellar Jade",
-      ],
-      serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
-    },
-    "Zenless Zone Zero": {
-      levels: ["Agent 1", "Agent 2", "Agent 3", "Agent 4", "Agent 5"],
-      features: [
-        "Bangboo 5★",
-        "Hollow 5★",
-        "Limited Bangboo",
-        "High Polychrome",
-      ],
-      serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
-    },
-  };
+ const gameConfigs = {
+   "Genshin Impact": {
+     levels: Array.from({ length: 60 }, (_, i) => `AR ${i + 1}`), // AR 1 sampai AR 60
+     features: [
+       "Character 5★",
+       "Weapon 5★",
+       "Limited Character",
+       "High Primogem",
+     ],
+     serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
+   },
+   "Honkai Star Rail": {
+     levels: Array.from({ length: 70 }, (_, i) => `Trailblaze ${i + 1}`), // Trailblaze 1 sampai Trailblaze 70
+     features: [
+       "Character 5★",
+       "Light Cone 5★",
+       "Limited Character",
+       "High Stellar Jade",
+     ],
+     serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
+   },
+   "Zenless Zone Zero": {
+     levels: Array.from({ length: 60 }, (_, i) => `Agent ${i + 1}`), // Agent 1 sampai Agent 60
+     features: [
+       "Bangboo 5★",
+       "Hollow 5★",
+       "Limited Bangboo",
+       "High Polychrome",
+     ],
+     serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
+   },
+   "Honkai Impact 3D": {
+     levels: Array.from({ length: 80 }, (_, i) => `Captain ${i + 1}`), // Captain 1 sampai Captain 80
+     features: [
+       "Character 5★",
+       "Weapon 5★",
+       "Limited Character",
+       "High Crystals",
+     ],
+     serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
+   },
+ };
 
-  const accounts = [
-    {
-      id: 1,
-      game: "Genshin Impact",
-      image:
-        "https://imgop.itemku.com/?url=https%3A%2F%2Fd1x91p7vw3vuq8.cloudfront.net%2Fitemku-upload%2F20231112%2Fjlkqw6j2ltmu54zm0jz9o_thumbnail.jpg&w=1033&q=10",
-      images: [
-        "https://imgop.itemku.com/?url=https%3A%2F%2Fd1x91p7vw3vuq8.cloudfront.net%2Fitemku-upload%2F20231112%2Fjlkqw6j2ltmu54zm0jz9o_thumbnail.jpg&w=1033&q=10",
-        "https://imgop.itemku.com/?url=https%3A%2F%2Fd1x91p7vw3vuq8.cloudfront.net%2Fitemku-upload%2F20231112%2Fjlkqw6j2ltmu54zm0jz9o_thumbnail.jpg&w=1033&q=10",
-        "https://imgop.itemku.com/?url=https%3A%2F%2Fd1x91p7vw3vuq8.cloudfront.net%2Fitemku-upload%2F20231112%2Fjlkqw6j2ltmu54zm0jz9o_thumbnail.jpg&w=1033&q=10",
-      ],
-      stock: 10,
-      server: "Asia",
-      title: "Furina",
-      price: 2500000,
-      discount: 1999000,
-      level: "AR 60",
-      features: ["30+ Karakter 5★", "Senjata Langka", "Primogem Tinggi"],
-      email: "account1@domain.com",
-      password: "securepass123",
-      status: "Available",
-    },
-  ];
+
+  // Fetch accounts on component mount
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getAccounts();
+      setAccounts(data);
+    } catch (err) {
+      console.error("Error fetching accounts:", err);
+      setError("Failed to load accounts. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const togglePasswordVisibility = (id) => {
     setShowPassword((prev) => ({
@@ -121,16 +135,73 @@ function DataGameAccount() {
     setSelectedAccount(null);
   };
 
-  const handleSaveAccount = (formData) => {
-    // Here you would typically save the data to your backend
-    console.log("Saving account data:", formData);
-    closeModal();
+  const handleSaveAccount = async (savedAccount) => {
+    setLoading(true);
+    setError(null);
+    
+    
+
+    try {
+      // The account data is already saved by the form modal
+      // Just refresh the accounts list
+      await fetchAccounts();
+      closeModal();
+
+      // Show success notification
+      toast.success(
+        `Account ${savedAccount.id ? "updated" : "created"} successfully!`,
+      );
+    } catch (err) {
+      console.error("Error retrieving updated accounts:", err);
+      setError("Failed to refresh account list. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleDeleteAccount = async (id) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await deleteAccount(id);
+      // Refresh the accounts list
+      await fetchAccounts();
+      setDeleteConfirmation(null);
+      toast.success("Account deleted successfully!");
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      setError("Failed to delete account. Please try again.");
+      toast.error("Failed to delete account. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter accounts based on search and filters
+  const filteredAccounts = accounts.filter((account) => {
+    // Search term filter
+    const matchesSearch =
+      searchTerm === "" ||
+      account.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      account.game.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Game filter
+    const matchesGame =
+      gameFilter === "All Games" || account.game === gameFilter;
+
+    // Server filter
+    const matchesServer =
+      serverFilter === "All Servers" || account.server === serverFilter;
+
+    return matchesSearch && matchesGame && matchesServer;
+  });
 
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Game Account Management</h1>
+        <ToastContainer />
         <button
           className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           onClick={openAddModal}
@@ -140,6 +211,13 @@ function DataGameAccount() {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center">
+          <AlertTriangle className="w-5 h-5 mr-2" />
+          <span>{error}</span>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b">
           <div className="flex items-center gap-4">
@@ -148,20 +226,31 @@ function DataGameAccount() {
               <input
                 type="text"
                 placeholder="Search accounts..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <select className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={gameFilter}
+                onChange={(e) => setGameFilter(e.target.value)}
+              >
                 <option>All Games</option>
-                <option>Genshin Impact</option>
-                <option>Honkai Impact</option>
-                <option>Honkai Star Rail</option>
-                <option>Zenless Zone Zero</option>
+                {Object.keys(gameConfigs).map((game) => (
+                  <option key={game} value={game}>
+                    {game}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <select className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={serverFilter}
+                onChange={(e) => setServerFilter(e.target.value)}
+              >
                 <option>All Servers</option>
                 <option>Asia</option>
                 <option>Europe</option>
@@ -172,151 +261,157 @@ function DataGameAccount() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Account Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Credentials
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Server
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {accounts.map((account) => (
-                <tr key={account.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div
-                        className="h-14 w-14 flex-shrink-0 cursor-pointer"
-                        onClick={() => openDetailAccount(account)}
-                      >
-                        <img
-                          className="h-14 w-14 rounded-md object-cover"
-                          src={account.image}
-                          alt={account.title}
-                        />
-                      </div>
-                      <div className="ml-4">
+        {loading ? (
+          <div className="py-10 text-center text-gray-500">
+            Loading accounts...
+          </div>
+        ) : filteredAccounts.length === 0 ? (
+          <div className="py-10 text-center text-gray-500">
+            No accounts found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Account Details
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Credentials
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Server
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAccounts.map((account) => (
+                  <tr key={account.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
                         <div
-                          className="text-sm font-medium text-gray-900 cursor-pointer hover:text-indigo-600"
+                          className="h-14 w-14 flex-shrink-0 cursor-pointer"
                           onClick={() => openDetailAccount(account)}
                         >
-                          {account.game}
+                          <img
+                            className="h-14 w-14 rounded-md object-cover"
+                            src={
+                              account.images && account.images.length > 0
+                                ? account.images[0]
+                                : "/placeholder-account.png"
+                            }
+                            alt={account.title}
+                          />
                         </div>
+                        <div className="ml-4">
+                          <div
+                            className="text-sm font-medium text-gray-900 cursor-pointer hover:text-indigo-600"
+                            onClick={() => openDetailAccount(account)}
+                          >
+                            {account.game}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {account.title}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Level: {account.level}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {account.game_email || account.email}
+                      </div>
+                      <div className="flex items-center gap-2">
                         <div className="text-sm text-gray-500">
-                          {account.title}
+                          {showPassword[account.id]
+                            ? account.game_password || account.password
+                            : "••••••••"}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          Level: {account.level}
+                        <button
+                          onClick={() => togglePasswordVisibility(account.id)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword[account.id] ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {account.server}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatPrice(account.discount || account.price)}
+                      </div>
+                      {account.discount && account.discount < account.price && (
+                        <div className="text-xs text-gray-500 line-through">
+                          {formatPrice(account.price)}
                         </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{account.email}</div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm text-gray-500">
-                        {showPassword[account.id]
-                          ? account.password
-                          : "••••••••"}
-                      </div>
-                      <button
-                        onClick={() => togglePasswordVisibility(account.id)}
-                        className="text-gray-400 hover:text-gray-600"
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {account.stock}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          account.stock > 0
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
                       >
-                        {showPassword[account.id] ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {account.server}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {formatPrice(account.discount)}
-                    </div>
-                    {account.discount < account.price && (
-                      <div className="text-xs text-gray-500 line-through">
-                        {formatPrice(account.price)}
+                        {account.stock > 0 ? "Available" : "Out of Stock"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex space-x-2">
+                        <button
+                          className="text-indigo-600 hover:text-indigo-900"
+                          onClick={() => openEditModal(account)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="text-red-600 hover:text-red-900"
+                          onClick={() => setDeleteConfirmation(account)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {account.stock}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        account.stock > 0
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {account.stock > 0 ? "Available" : "Out of Stock"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-2">
-                      <button
-                        className="text-indigo-600 hover:text-indigo-900"
-                        onClick={() => openEditModal(account)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div className="px-6 py-4 border-t">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              Showing 1 to 10 of 20 entries
+              Showing {filteredAccounts.length} of {accounts.length} entries
             </div>
-            <div className="flex space-x-2">
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                Previous
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-indigo-600 text-white">
-                1
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                2
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm">
-                Next
-              </button>
-            </div>
+            {/* Pagination can be added here later */}
           </div>
         </div>
       </div>
@@ -352,6 +447,35 @@ function DataGameAccount() {
           onClose={closeModal}
           title="Add New Game Account"
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirm Deletion
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Are you sure you want to delete the account "
+              {deleteConfirmation.title}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setDeleteConfirmation(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteAccount(deleteConfirmation.id)}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

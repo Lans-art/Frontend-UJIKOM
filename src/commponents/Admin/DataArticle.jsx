@@ -6,13 +6,13 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Upload,
+  X,
 } from "lucide-react";
-import axios from "axios"; // Make sure to install axios
+import axiosInstance from "../../../axios";
 import { useUser } from "../../context/UserContext";
-import { endpoints } from "../../../axios";
-
-
-
+import { toast } from "react-toastify";
+import Cookies from "js-cookie";
 
 // Games list for filter dropdown
 const games = [
@@ -21,8 +21,7 @@ const games = [
   "Honkai Star Rail",
   "Genshin Impact",
 ];
-const statuses = ["All Statuses", "Published", "Draft"];
-
+const statuses = ["All Statuses", "published", "draft"];
 
 function ImageSlider({ imageUrl }) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -63,25 +62,310 @@ function ImageSlider({ imageUrl }) {
   );
 }
 
+// Modal Component
+function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      ></div>
+      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 z-10">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function NewArticleModal({ isOpen, onClose, onSave }) {
+  const [newArticle, setNewArticle] = useState({
+    title: "",
+    game: "",
+    content: "",
+    status: "draft",
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("/api/placeholder/300/200");
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    // Reset form when modal is opened
+    if (isOpen) {
+      setNewArticle({
+        title: "",
+        game: "",
+        content: "",
+        status: "draft",
+      });
+      setSelectedFile(null);
+      setPreviewUrl("/api/placeholder/300/200");
+    }
+  }, [isOpen]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create a preview URL
+      const fileReader = new FileReader();
+      fileReader.onload = () => {
+        setPreviewUrl(fileReader.result);
+      };
+      fileReader.readAsDataURL(file);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewArticle({
+      ...newArticle,
+      [name]: value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (
+      !newArticle.title ||
+      !newArticle.game ||
+      !newArticle.content ||
+      !selectedFile
+    ) {
+      toast.error("Please fill all required fields and select an image");
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      // Create FormData object to handle file upload
+      const formData = new FormData();
+      formData.append("title", newArticle.title);
+      formData.append("game", newArticle.game);
+      formData.append("content", newArticle.content);
+      formData.append("status", newArticle.status);
+
+      // Append the image file
+      if (selectedFile) {
+        formData.append("image", selectedFile);
+      }
+
+      await onSave(formData);
+    } catch (err) {
+      console.error("Failed to create article:", err);
+      toast.error(
+        err.response?.data?.message ||
+          "Failed to create article. Please try again.",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="flex justify-between items-center border-b p-4">
+        <h2 className="text-xl font-semibold">Buat Article Baru</h2>
+        <button
+          onClick={onClose}
+          className="text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <form onSubmit={handleSubmit} className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Judul <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={newArticle.title}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Game <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="game"
+              value={newArticle.game}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              required
+            >
+              <option value="">Pilih Game</option>
+              {games.slice(1).map((game) => (
+                <option key={game} value={game}>
+                  {game}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              name="status"
+              value={newArticle.status}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {statuses.slice(1).map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Image Upload and Preview */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Gambar Article <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <div className="flex items-center">
+                <label className="w-full flex items-center justify-center p-2 border-2 border-dashed border-gray-300 rounded-md hover:border-indigo-500 cursor-pointer bg-gray-50">
+                  <div className="space-y-1 text-center">
+                    <Upload className="mx-auto h-6 w-6 text-gray-400" />
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium text-indigo-600 hover:text-indigo-500">
+                        Pilih file gambar
+                      </span>{" "}
+                      atau drag & drop
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, GIF sampai 10MB
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    required
+                  />
+                </label>
+              </div>
+              {selectedFile && (
+                <p className="text-xs text-gray-500 mt-1">
+                  File terpilih: {selectedFile.name}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-center items-center">
+              <div className="h-24 w-36 bg-gray-100 rounded overflow-hidden">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Konten <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            name="content"
+            value={newArticle.content}
+            onChange={handleInputChange}
+            rows="4"
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            required
+          ></textarea>
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-3 border-t">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
+            disabled={
+              !newArticle.title ||
+              !newArticle.game ||
+              !newArticle.content ||
+              !selectedFile ||
+              uploading
+            }
+          >
+            {uploading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Uploading...
+              </>
+            ) : (
+              "Simpan Article"
+            )}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function DataArticle() {
   // State for articles and search/filter
-  const { token } = useUser(); // ambil token dari context
-
+  const { token } = useUser(); // get token from context
   const [articles, setArticles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGame, setSelectedGame] = useState("All Games");
   const [selectedStatus, setSelectedStatus] = useState("All Statuses");
-  const [showNewArticleForm, setShowNewArticleForm] = useState(false);
-  const [ newArticle, setNewArticle] = useState({
-    title: "",
-    game: "",
-    content: "",
-    imageUrl: "/api/placeholder/300/200", // Default image URL
-    status: "Draft",
-  });
+  const [modalOpen, setModalOpen] = useState(false);
   const [useSlider, setUseSlider] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Configure axios instance with auth token
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      axiosInstance.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${token}`;
+    }
+  }, []);
 
   // Load articles from API on component mount
   useEffect(() => {
@@ -91,7 +375,7 @@ function DataArticle() {
   const fetchArticles = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/article");
+      const response = await axiosInstance.get("/api/articles");
       setArticles(response.data);
       setError(null);
     } catch (err) {
@@ -115,82 +399,49 @@ function DataArticle() {
             .toLowerCase()
             .includes(searchTerm.toLowerCase());
 
-
         const matchesGame =
           selectedGame === "All Games" || article.game === selectedGame;
         const matchesStatus =
           selectedStatus === "All Statuses" ||
-          article.status === selectedStatus;
+          article.status.toLowerCase() === selectedStatus.toLowerCase();
 
         return matchesSearch && matchesGame && matchesStatus;
       })
     : [];
 
-  const handleCreateArticle = async () => {
+  const handleCreateArticle = async (formData) => {
     try {
-      const response = await axios.post(
-       (endpoints.crudArticle.create),
-        newArticle,
-        // {
-        //   headers: {
-        //     Authorization: `Bearer ${token}`,
-        //     "Content-Type": "application/json",
-        //   },
-        // },
-      );
-
-      setArticles([response.data, ...articles]);
-      setShowNewArticleForm(false);
-      setNewArticle({
-        title: "",
-        game: "",
-        content: "",
-        imageUrl: "/api/placeholder/300/200",
-        status: "Draft",
+      // Send the formData to create article endpoint
+      const response = await axiosInstance.post("/api/articles", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      alert("Article berhasil disimpan!");
+      // Add the new article to the articles state
+      setArticles([response.data, ...articles]);
+
+      // Close modal
+      setModalOpen(false);
+
+      toast.success("Article berhasil disimpan!");
+      return response.data;
     } catch (err) {
       console.error("Failed to create article:", err);
-      alert("Failed to create article. Please try again.");
+      throw err;
     }
-  };
-
-  // Handle input changes in the new article form
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewArticle({
-      ...newArticle,
-      [name]: value,
-    });
-  };
-
-  // Preview the selected image
-  const [previewImage, setPreviewImage] = useState(null);
-
-  const handleImageChange = (e) => {
-    const { value } = e.target;
-
-    // Update the image URL in the form state
-    setNewArticle({
-      ...newArticle,
-      imageUrl: value || "/api/placeholder/300/200", // Use default if empty
-    });
-
-    // Update preview
-    setPreviewImage(value || "/api/placeholder/300/200");
   };
 
   // Delete article
   const handleDeleteArticle = async (id) => {
     if (window.confirm("Anda yakin ingin menghapus article ini?")) {
       try {
-        await axios.delete(`/api/article/${id}`);
+        await axiosInstance.delete(`/api/articles/${id}`);
         setArticles(articles.filter((article) => article.id !== id));
-        alert("Article berhasil dihapus!");
+        toast.success("Article berhasil dihapus!");
       } catch (err) {
         console.error("Failed to delete article:", err);
-        alert("Failed to delete article. Please try again.");
+        toast.error("Failed to delete article. Please try again.");
       }
     }
   };
@@ -198,7 +449,9 @@ function DataArticle() {
   // Toggle article status between Published and Draft
   const handleToggleStatus = async (id) => {
     try {
-      const response = await axios.put(`/api/article/toggle-status/${id}`);
+      const response = await axiosInstance.put(
+        `/api/articles/toggle-status/${id}`,
+      );
 
       const updatedArticles = articles.map((article) => {
         if (article.id === id) {
@@ -208,9 +461,12 @@ function DataArticle() {
       });
 
       setArticles(updatedArticles);
+      toast.success(
+        `Status article berhasil diubah menjadi ${response.data.status}`,
+      );
     } catch (err) {
       console.error("Failed to toggle article status:", err);
-      alert("Failed to update article status. Please try again.");
+      toast.error("Failed to update article status. Please try again.");
     }
   };
 
@@ -223,146 +479,23 @@ function DataArticle() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Manajemen Article</h1>
         <div className="flex space-x-4">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="sliderToggle"
-              checked={useSlider}
-              onChange={() => setUseSlider(!useSlider)}
-              className="mr-2"
-            />
-            <label htmlFor="sliderToggle" className="text-sm">
-              Gunakan Slider
-            </label>
-          </div>
+          
           <button
             className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            onClick={() => setShowNewArticleForm(!showNewArticleForm)}
+            onClick={() => setModalOpen(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
-            {showNewArticleForm ? "Batal" : "Article Baru"}
+            Article Baru
           </button>
         </div>
       </div>
 
-      {showNewArticleForm && (
-        <div className="bg-white rounded-lg shadow mb-8 p-6">
-          <h2 className="text-xl font-semibold mb-4">Buat Article Baru</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Judul
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={newArticle.title}
-                onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Game
-              </label>
-              <select
-                name="game"
-                value={newArticle.game}
-                onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">Pilih Game</option>
-                {games.slice(1).map((game) => (
-                  <option key={game} value={game}>
-                    {game}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                name="status"
-                value={newArticle.status}
-                onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {statuses.slice(1).map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Image Content Input and Preview */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Gambar Article
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <input
-                  type="text"
-                  name="imageUrl"
-                  placeholder="Masukkan URL gambar atau gunakan default"
-                  value={
-                    newArticle.imageUrl === "/api/placeholder/300/200"
-                      ? ""
-                      : newArticle.imageUrl
-                  }
-                  onChange={handleImageChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Kosongkan untuk menggunakan gambar default
-                </p>
-              </div>
-              <div className="flex justify-center items-center">
-                <div className="h-24 w-36 bg-gray-100 rounded overflow-hidden">
-                  <img
-                    src={previewImage || newArticle.imageUrl}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "/api/placeholder/300/200";
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Konten
-            </label>
-            <textarea
-              name="content"
-              value={newArticle.content}
-              onChange={handleInputChange}
-              rows="4"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            ></textarea>
-          </div>
-          <div className="flex justify-end">
-            <button
-              onClick={handleCreateArticle}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              disabled={
-                !newArticle.title || !newArticle.game || !newArticle.content
-              }
-            >
-              Simpan Article
-            </button>
-          </div>
-        </div>
-      )}
+      {/* New Article Modal */}
+      <NewArticleModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleCreateArticle}
+      />
 
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 border-b">
@@ -500,7 +633,7 @@ function DataArticle() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          article.status === "Published"
+                          article.status.toLowerCase() === "published"
                             ? "bg-green-100 text-green-800"
                             : "bg-yellow-100 text-yellow-800"
                         }`}
@@ -516,17 +649,17 @@ function DataArticle() {
                         <button
                           onClick={() => handleToggleStatus(article.id)}
                           className={`p-1 rounded hover:bg-gray-100 ${
-                            article.status === "Published"
+                            article.status.toLowerCase() === "published"
                               ? "text-yellow-600"
                               : "text-green-600"
                           }`}
                           title={
-                            article.status === "Published"
-                              ? "Set to Draft"
-                              : "Publish"
+                            article.status.toLowerCase() === "published"
+                              ? "Set to draft"
+                              : "publish"
                           }
                         >
-                          {article.status === "Published" ? (
+                          {article.status.toLowerCase() === "published" ? (
                             <span>↓</span>
                           ) : (
                             <span>↑</span>

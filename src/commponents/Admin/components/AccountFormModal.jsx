@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { createAccount, updateAccount, checkForDuplicates } from "../../../services/accountservice";
+import { toast } from "react-toastify"; // Assuming you use react-toastify for notifications
 
 const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     game: "Genshin Impact",
     server: "Asia",
@@ -9,34 +12,71 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
     price: "",
     discount: "",
     level: "",
-    stock: "",
-    email: "",
-    password: "",
-    image: "",
+    stock: 1,
+    game_email: "", // Changed from email to match backend
+    game_password: "", // Changed from password to match backend
     images: [],
     features: [],
   });
 
+  
+
   // Initialize form data if editing an existing account
   useEffect(() => {
     if (account) {
+      // Map backend data to form fields
       setFormData({
         ...account,
-        images: account.images || [],
+        // Handle potential field name differences
+        game_email: account.game_email || "",
+        game_password: account.game_password || "",
+        // Convert existing images to the format our form expects
+        images: Array.isArray(account.images)
+          ? account.images.map((img) => ({
+              file: null, // We don't have the file object for existing images
+              preview: img,
+              isExisting: true, // Flag to indicate this is an existing image
+            }))
+          : [],
       });
     }
   }, [account]);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "price" || name === "discount" || name === "stock"
-          ? parseInt(value) || 0
-          : value,
-    }));
+  const formatToIDR = (number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(number);
   };
+
+  const unformatIDR = (value) => {
+    return parseInt(value.replace(/[Rp.\s]/g, "")) || 0;
+  };
+
+
+ const handleInputChange = (e) => {
+   const { name, value } = e.target;
+
+   if (name === "price" || name === "discount") {
+     const raw = unformatIDR(value);
+     setFormData((prev) => ({
+       ...prev,
+       [name]: raw,
+     }));
+   } else if (name === "stock") {
+     setFormData((prev) => ({
+       ...prev,
+       stock: parseInt(value) || 1,
+     }));
+   } else {
+     setFormData((prev) => ({
+       ...prev,
+       [name]: value,
+     }));
+   }
+ };
+
 
   const handleFeatureChange = (feature, checked) => {
     if (checked) {
@@ -53,7 +93,7 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
   };
 
   const handleFeatureNumberChange = (feature, value) => {
-    // Extract base feature name (e.g., "Character 5★" from "10 Character 5★")
+    // Extract base feature name
     const baseFeature = feature;
 
     // Remove old version of this feature
@@ -86,10 +126,25 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
   };
 
   const handleAddImage = () => {
-    if (formData.image && !formData.images.includes(formData.image)) {
+    if (formData.image) {
+      if (formData.image.size > 2 * 1024 * 1024) {
+        toast.warning("Maximum image size is 2MB");
+        return;
+      }
+      if (!formData.image.type.startsWith("image/")) {
+        toast.warning("Only image files are allowed");
+        return;
+      }
+
+      // Add the image
+      const newImageUrl = URL.createObjectURL(formData.image);
       setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, formData.image],
+        images: [
+          ...prev.images,
+          { file: formData.image, preview: newImageUrl, isNew: true },
+        ],
+        image: null,
       }));
     }
   };
@@ -101,9 +156,107 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
+    setIsSubmitting(true);
+
+    if (
+      !formData.title ||
+      !formData.level ||
+      !formData.price ||
+      !formData.stock ||
+      !formData.game_email ||
+      !formData.game_password
+    ) {
+      toast.error("Please fill in all required fields.");
+      setIsSubmitting(false);
+      return;
+    }
+
+
+    try {
+      // First check for duplicates
+      const hasDuplicate = await checkForDuplicates(
+        formData.game,
+        formData.game_email,
+        formData.game_password,
+        account?.id,
+      );
+
+      if (hasDuplicate) {
+        toast.error(
+          "Akun dengan email dan password yang sama sudah terdaftar di game ini.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const data = new FormData();
+
+      // Add basic fields
+      data.append("game", formData.game);
+      data.append("server", formData.server);
+      data.append("title", formData.title);
+      data.append("price", formData.price);
+      data.append("level", formData.level);
+      data.append("stock", formData.stock);
+      data.append("game_email", formData.game_email);
+      data.append("game_password", formData.game_password);
+
+      // Add discount only if provided
+      if (formData.discount) {
+        data.append("discount", formData.discount);
+      }
+
+      // Process images
+      const existingImageUrls = [];
+
+      formData.images.forEach((img) => {
+        if (img.isExisting) {
+          // For existing images, collect URLs
+          existingImageUrls.push(img.preview);
+        } else if (img.file) {
+          // For new image files
+          data.append(`images[]`, img.file);
+        }
+      });
+
+      // Add existing image URLs
+      if (existingImageUrls.length > 0) {
+        data.append("existing_images", JSON.stringify(existingImageUrls));
+      }
+
+      // Add features
+      formData.features.forEach((feature) => {
+        data.append(`features[]`, feature);
+      });
+
+      // Save the account (create or update)
+      let result;
+      if (account?.id) {
+        // Update existing account
+        result = await updateAccount(account.id, data);
+      } else {
+        // Create new account
+        result = await createAccount(data);
+      }
+
+      // Notify success
+      toast.success(`Account ${account ? "updated" : "created"} successfully!`);
+
+      // Call onSave with the result
+      onSave(result);
+    } catch (error) {
+      console.error("Error saving account:", error);
+
+      // Display error message
+      const errorMessage =
+        error.response?.data?.message ||
+        "An error occurred while saving the account";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -130,7 +283,7 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                     name="game"
                     value={formData.game}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {Object.keys(gameConfigs).map((game) => (
                       <option key={game} value={game}>
@@ -148,7 +301,7 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                     name="server"
                     value={formData.server}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {formData.game &&
                       gameConfigs[formData.game]?.serverOptions.map(
@@ -170,8 +323,9 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., Furina Account"
+                    
                   />
                 </div>
 
@@ -183,7 +337,8 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                     name="level"
                     value={formData.level}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    
                   >
                     <option value="">Select Level</option>
                     {formData.game &&
@@ -201,12 +356,13 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                       Price (IDR)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       name="price"
-                      value={formData.price}
+                      value={formatToIDR(formData.price)}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Original price"
+                      
                     />
                   </div>
                   <div className="mb-4">
@@ -214,12 +370,12 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                       Discount Price (IDR)
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       name="discount"
-                      value={formData.discount}
+                      value={formatToIDR(formData.discount)}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="Sale price"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Sale price (optional)"
                     />
                   </div>
                 </div>
@@ -233,8 +389,10 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                     name="stock"
                     value={formData.stock}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Number of accounts available"
+                    
+                    min="1"
                   />
                 </div>
               </div>
@@ -242,31 +400,36 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
               <div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Images
+                    Images ({formData.images.length}/5)
                   </label>
                   <div className="flex gap-2 mb-2">
                     <input
-                      type="text"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleInputChange}
-                      className="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="Image URL"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          image: e.target.files[0],
+                        }))
+                      }
+                      className="flex-grow px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+
                     <button
                       type="button"
                       onClick={handleAddImage}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      disabled={!formData.image || formData.images.length >= 5}
                     >
                       Add
                     </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 mb-2">
-                    {formData.images.map((img, index) => (
+                    {formData.images.map((imgObj, index) => (
                       <div key={index} className="relative group">
                         <img
-                          src={img}
+                          src={imgObj.preview}
                           alt="Account preview"
                           className="w-full h-24 object-cover rounded-md"
                         />
@@ -289,19 +452,21 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                   <div className="grid grid-cols-2 gap-4">
                     <input
                       type="email"
-                      name="email"
-                      value={formData.email}
+                      name="game_email"
+                      value={formData.game_email}
                       onChange={handleInputChange}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Email"
+                      
                     />
                     <input
                       type="password"
-                      name="password"
-                      value={formData.password}
+                      name="game_password"
+                      value={formData.game_password}
                       onChange={handleInputChange}
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Password"
+                      
                     />
                   </div>
                 </div>
@@ -358,14 +523,16 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                 type="button"
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+                disabled={isSubmitting}
               >
-                Save Account
+                {isSubmitting ? "Saving..." : "Save Account"}
               </button>
             </div>
           </form>

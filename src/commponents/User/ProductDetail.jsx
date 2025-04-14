@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { getAccountById } from "../../services/accountservice";
 import {
   ArrowLeft,
   MessageSquare,
@@ -14,9 +15,9 @@ import {
   Share2,
   Info,
 } from "lucide-react";
-import allAccounts from "../DataCobaan/account";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { formatPrice } from "../format";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -25,18 +26,35 @@ const ProductDetail = () => {
   const [account, setAccount] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (account?.id === id) return;
-    setAccount(null);
+    // Reset states when ID changes
     setQuantity(1);
     setIsImageLoaded(false);
     setCurrentImageIndex(0);
-    const foundAccount = allAccounts.find(
-      (item) => String(item.id) === String(id),
-    );
-    setAccount(foundAccount);
-  }, [id, account]);
+    setLoading(true);
+    setError(null);
+
+    // In ProductDetail.jsx
+    const fetchAccountData = async () => {
+      try {
+        console.log("Fetching account with ID:", id);
+        const data = await getAccountById(id);
+        console.log("Received account data:", data);
+        setAccount(data);
+      } catch (err) {
+        console.error("Error fetching account:", err);
+        setError("Failed to load account data");
+        toast.error("Failed to load account details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccountData();
+  }, [id]);
 
   const addItem = (item, qty) => {
     const existingCartItems =
@@ -71,21 +89,7 @@ const ProductDetail = () => {
     });
   };
 
-  const proceedToCheckout = (item, qty) => {
-    // Create an array with only this item for direct checkout
-    const checkoutItems = [{ ...item, quantity: qty }];
 
-    // Save to localStorage as checkoutItems instead of cartItems
-    localStorage.setItem("checkoutItems", JSON.stringify(checkoutItems));
-
-    // Clear any previous order notes or admin fees
-    localStorage.setItem("orderNote", "");
-    localStorage.setItem("adminFee", "0");
-
-    // No need to add to cart when buying directly
-    // Navigate to checkout page
-    navigate("/checkout");
-  };
 
   const handleQuantityChange = (delta) => {
     setQuantity((prev) => {
@@ -110,13 +114,13 @@ const ProductDetail = () => {
     }
   };
 
-  if (!account) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+ if (!account) {
+   return (
+     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+       <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+     </div>
+   );
+ }
 
   const images = account?.images || [account?.image];
 
@@ -169,7 +173,7 @@ const ProductDetail = () => {
                   <>
                     <button
                       onClick={() => handleImageNavigation("prev")}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10  bg-white/80 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
                     >
                       <ChevronLeft className="w-6 h-6 text-gray-700" />
                     </button>
@@ -263,14 +267,11 @@ const ProductDetail = () => {
                 <div className="flex items-baseline space-x-2">
                   {account.discount && account.discount !== account.price && (
                     <span className="text-lg text-gray-500 line-through">
-                      Rp {account.price?.toLocaleString("id-ID")}
+                      {formatPrice(account.price)}
                     </span>
                   )}
                   <span className="text-3xl font-bold text-blue-600">
-                    Rp{" "}
-                    {(account.discount || account.price)?.toLocaleString(
-                      "id-ID",
-                    )}
+                    {formatPrice(account.discount || account.price)}
                   </span>
                 </div>
               </div>

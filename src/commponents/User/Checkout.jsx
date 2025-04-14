@@ -248,9 +248,9 @@ function Checkout() {
             </Link>
             <span className="mx-2 text-gray-300">/</span>
             <Link
-              to="/checkout"
+              to="/cart/checkout"
               className={`text-gray-400 hover:text-blue-600 ${
-                location.pathname === "/checkout"
+                location.pathname === "/cart/checkout"
                   ? "text-blue-600 pointer-events-none"
                   : ""
               }`}

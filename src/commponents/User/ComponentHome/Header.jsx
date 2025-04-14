@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import axiosInstance from "../../../../axios";
 
 const menuItems = [
   { name: "Home", path: "/home", icon: HomeIcon },
@@ -58,8 +59,8 @@ function Header() {
 
   const handleLogout = async () => {
     try {
-      await axios.post(
-        "http://127.0.0.1:8000/api/logout",
+      await axiosInstance.post(
+        "/api/logout",
         {},
         {
           headers: { Authorization: `Bearer ${Cookies.get("token")}` },

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Header from "./ComponentHome/Header";
 import { motion } from "framer-motion";
+import axiosInstance from "../../../axios";
 
 function HomePage() {
   const [activeTab, setActiveTab] = useState("All");
@@ -8,26 +9,27 @@ function HomePage() {
   const [visiblePosts, setVisiblePosts] = useState(5);
   const [posts, setPosts] = useState([]);
 
-  // Fetch articles from localStorage on component mount
+  // Load articles from API and filter by published status
   useEffect(() => {
-    fetch(`/api/articles`)
-      .then((res) => res.json())
-      .then((data) => {
-        const formattedPosts = data.map((article) => ({
-          id: article.id,
-          admin: article.admin,
-          game: article.game,
-          avatarUrl: article.avatarUrl,
-          timeAgo: article.timeAgo,
-          imageUrl: article.imageUrl,
-          title: article.title,
-          content: article.content,
-          likes: Math.floor(Math.random() * 100),
-        }));
-        setPosts(formattedPosts);
+    axiosInstance
+      .get("/api/articles")
+      .then((response) => {
+        console.log("Response:", response.data);
+        // Filter articles to only include published ones
+        const publishedPosts = response.data.filter(
+          (post) => post.status === "Published",
+        );
+        setPosts(publishedPosts);
       })
-      .catch((err) => {
-        console.error("Failed to fetch articles:", err);
+      .catch((error) => {
+        if (error.response) {
+          console.error("Server responded with:", error.response.status);
+          console.error("Response data:", error.response.data);
+        } else if (error.request) {
+          console.error("No response received:", error.request);
+        } else {
+          console.error("Error:", error.message);
+        }
       });
   }, []);
 
@@ -39,6 +41,7 @@ function HomePage() {
     setIsExpanded((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
+  // The filtering by game category happens after already filtering by status
   const filteredPosts =
     activeTab === "All"
       ? posts
@@ -173,11 +176,11 @@ function HomePage() {
           {posts.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg p-6 text-center">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Belum ada artikel
+                Belum ada artikel yang dipublikasi
               </h3>
               <p className="text-gray-600">
-                Buat artikel dari halaman admin untuk menampilkan konten di
-                sini.
+                Semua artikel masih dalam status draft atau belum ada artikel
+                yang dibuat.
               </p>
             </div>
           ) : (
@@ -215,10 +218,6 @@ function HomePage() {
                       src={post.imageUrl}
                       alt={post.title}
                       className="absolute top-0 left-0 w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "/api/placeholder/300/200";
-                      }}
                     />
                   </div>
 

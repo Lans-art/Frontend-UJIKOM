@@ -90,13 +90,13 @@ export const UserProvider = ({ children }) => {
 
       // Store data in cookies
       if (typeof role !== "undefined" && role !== null) {
-        Cookies.set("role", role, { expires: 1 });
+        Cookies.set("role", role, { expires: 30 });
       }
       console.log("Login success - role:", role);
 
-      Cookies.set("token", token, { expires: 1 });
+      Cookies.set("token", token, { expires: 30 });
       if (name || user?.name) {
-        Cookies.set("name", name || user.name, { expires: 1 });
+        Cookies.set("name", name || user.name, { expires: 30 });
       }
 
       // Set auth header
