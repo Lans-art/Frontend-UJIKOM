@@ -1,63 +1,84 @@
-import { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FiArrowLeft,
-  FiLogOut,
-  FiCamera,
-  FiEdit2,
-  FiShoppingCart,
-  FiClock,
-} from "react-icons/fi";
+  Shield,
+  Mail,
+  Phone,
+  Calendar,
+  Bell,
+  ShoppingCart,
+  Heart,
+  Ticket,
+  Settings,
+  LogOut,
+  MessageCircle,
+  Gift,
+  Crown,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Download,
+  Star,
+  Moon,
+  Sun,
+  ChevronRight,
+  Lock,
+  Smartphone,
+  History,
+  ArrowLeft,
+  User,
+} from "lucide-react";
 import { useUser } from "../../context/UserContext";
-import axios from "axios";
 
 function Profile() {
   const navigate = useNavigate();
   const { name, email, logout, refreshUserData, isLoading, token } = useUser();
 
-  const [profile, setProfile] = useState({
-    name: name || "User",
-    email: email || "No email provided",
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || "User"}`,
+  const [activeTab, setActiveTab] = useState("profile");
+  const tabRefs = useRef({});
+  const [indicatorStyle, setIndicatorStyle] = useState({
+    left: 0,
+    width: 0,
+    transition: "none",
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
+  // Using user data from context or fallback values
+  const displayName = name || "GamerPro123";
+  const userEmail = email || "gamer123@example.com";
 
-  // Dummy data - in a real app, you would fetch these from your API
-  const [transactions] = useState([
+  const joinDate = new Date("2023-01-15");
+  const lastLogin = new Date("2024-03-15T14:30:00");
+
+  const transactions = [
     {
       id: 1,
-      game: "Cyberpunk 2077",
-      amount: 59.99,
-      date: "2024-02-15",
-      status: "completed",
-      image: "https://picsum.photos/seed/cyber/100/100",
+      game: "Mobile Legends",
+      level: 75,
+      price: 1200000,
+      status: "success",
+      date: new Date("2024-03-10"),
+      details: "All Heroes Unlocked, 50 Skins",
     },
     {
       id: 2,
-      game: "Elden Ring",
-      amount: 49.99,
-      date: "2024-02-10",
-      status: "completed",
-      image: "https://picsum.photos/seed/elden/100/100",
+      game: "Genshin Impact",
+      level: 55,
+      price: 2500000,
+      status: "pending",
+      date: new Date("2024-03-14"),
+      details: "AR 55, Limited Characters",
     },
-  ]);
+  ];
 
-  const [cartItems] = useState([
+  const cartItems = [
     {
       id: 1,
-      game: "Red Dead Redemption 2",
-      price: 39.99,
-      image: "https://picsum.photos/seed/rdr2/100/100",
+      game: "PUBG Mobile Account",
+      level: 70,
+      price: 1500000,
+      details: "Royal Pass",
     },
-    {
-      id: 2,
-      game: "God of War Ragnarök",
-      price: 49.99,
-      image: "https://picsum.photos/seed/gow/100/100",
-    },
-  ]);
+  ];
 
   const handleBack = () => {
     navigate("/home");
@@ -68,52 +89,77 @@ function Profile() {
     navigate("/home");
   };
 
-  const handleAvatarChange = () => {
-    const newSeed = Math.random().toString(36).substring(7);
-    setProfile((prev) => ({
-      ...prev,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newSeed}`,
-    }));
-  };
+  // Update the indicator position when activeTab changes
+  useEffect(() => {
+    if (tabRefs.current[activeTab]) {
+      const tabElement = tabRefs.current[activeTab];
+      const tabRect = tabElement.getBoundingClientRect();
+      const navElement = tabElement.parentElement;
+      const navRect = navElement.getBoundingClientRect();
 
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-
-    try {
-      // Example of how to update profile data with your backend
-      const response = await axios.put(
-        "http://localhost:8000/api/user/profile",
-        {
-          name: profile.name,
-          email: profile.email,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      // If successful, refresh user data from context
-      if (response.status === 200) {
-        refreshUserData();
-        setIsEditing(false);
-      }
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      // In a production app, you'd want to show an error message to the user
+      setIndicatorStyle({
+        left: tabRect.left - navRect.left,
+        width: tabRect.width,
+        transition: "all 0.3s ease",
+      });
     }
+  }, [activeTab]);
+
+  // Initialize indicator position on first render
+  useEffect(() => {
+    // Use a short timeout to ensure the DOM is fully rendered
+    const timer = setTimeout(() => {
+      if (tabRefs.current[activeTab]) {
+        const tabElement = tabRefs.current[activeTab];
+        const tabRect = tabElement.getBoundingClientRect();
+        const navElement = tabElement.parentElement;
+        const navRect = navElement.getBoundingClientRect();
+
+        setIndicatorStyle({
+          left: tabRect.left - navRect.left,
+          width: tabRect.width,
+          transition: "none", // No transition on initial render
+        });
+      }
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleChangeTab = (tabId) => {
+    setActiveTab(tabId);
   };
 
-  const handleRemoveFromCart = (id) => {
-    // In a real app, you would call an API to remove the item
-    console.log("Remove item from cart:", id);
+  const renderStatus = (status) => {
+    switch (status) {
+      case "success":
+        return (
+          <span className="flex items-center text-green-600">
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            Success
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="flex items-center text-yellow-600">
+            <Clock className="w-4 h-4 mr-1" />
+            Pending
+          </span>
+        );
+      default:
+        return (
+          <span className="flex items-center text-red-600">
+            <AlertCircle className="w-4 h-4 mr-1" />
+            Failed
+          </span>
+        );
+    }
   };
 
   // If data is still loading, show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your profile...</p>
@@ -122,254 +168,370 @@ function Profile() {
     );
   }
 
-  const renderProfile = () => (
-    <div className="flex flex-col items-center max-w-lg mx-auto">
-      <div className="relative">
-        <img
-          src={profile.avatar}
-          alt="Profile"
-          className="w-40 h-40 md:w-48 md:h-48 rounded-full border-4 border-white shadow-lg"
-        />
-        <button
-          onClick={handleAvatarChange}
-          className="absolute bottom-2 right-2 bg-blue-500 p-3 rounded-full text-white hover:bg-blue-600 transition-colors shadow-lg"
-        >
-          <FiCamera className="w-6 h-6" />
-        </button>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-48">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleBack}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full p-2"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <div className="relative">
+                <img
+                  className="h-24 w-24 rounded-full border-4 border-white"
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`}
+                  alt="Profile"
+                />
+                <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-green-400 border-2 border-white"></span>
+              </div>
+              <div className="text-white">
+                <h1 className="text-2xl font-bold">{displayName}</h1>
+                <div className="flex items-center mt-1">
+                  <Crown className="w-5 h-5 text-yellow-400 mr-2" />
+                  <span>Pelanggan</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button className="bg-white/10 hover:bg-white/20 text-white rounded-full p-2">
+                <Bell className="w-6 h-6" />
+              </button>
+              <button className="bg-white/10 hover:bg-white/20 text-white rounded-full p-2">
+                <ShoppingCart className="w-6 h-6" />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-full p-2"
+              >
+                <LogOut className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {isEditing ? (
-        <form onSubmit={handleProfileUpdate} className="mt-8 w-full">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                type="text"
-                value={profile.name}
-                onChange={(e) =>
-                  setProfile((prev) => ({ ...prev, name: e.target.value }))
-                }
-                className="mt-2 block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                value={profile.email}
-                onChange={(e) =>
-                  setProfile((prev) => ({ ...prev, email: e.target.value }))
-                }
-                className="mt-2 block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-              />
-            </div>
-            <div className="flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="px-6 py-3 text-lg border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-3 text-lg bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </form>
-      ) : (
-        <div className="mt-8 text-center w-full">
-          <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
-          <p className="text-xl text-gray-500 mt-2">{profile.email}</p>
-          <button
-            onClick={() => setIsEditing(true)}
-            className="mt-6 flex items-center mx-auto px-6 py-3 text-lg border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <FiEdit2 className="w-5 h-5 mr-2" />
-            Edit Profile
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderTransactions = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Transaction History</h2>
-      {transactions.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 text-lg">No transactions found</p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {transactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex flex-col md:flex-row md:items-center gap-4 bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+        <div className="bg-white rounded-lg shadow">
+          {/* Navigation */}
+          <div className="border-b relative">
+            <nav
+              className="flex space-x-8 px-6 overflow-x-auto"
+              aria-label="Tabs"
             >
-              <img
-                src={transaction.image}
-                alt={transaction.game}
-                className="w-24 h-24 rounded-xl object-cover"
-              />
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  {transaction.game}
-                </h3>
-                <p className="text-gray-500 mt-1">
-                  {new Date(transaction.date).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex flex-row md:flex-col items-center md:items-end gap-2 md:gap-1">
-                <p className="text-xl font-bold text-gray-900">
-                  ${transaction.amount}
-                </p>
-                <span className="px-3 py-1 text-sm rounded-full bg-green-100 text-green-800 font-medium">
-                  {transaction.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderCart = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Shopping Cart</h2>
-      {cartItems.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 text-lg">Your cart is empty</p>
-          <button
-            onClick={() => navigate("/home")}
-            className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Continue Shopping
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-4">
-            {cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col md:flex-row md:items-center gap-4 bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-              >
-                <img
-                  src={item.image}
-                  alt={item.game}
-                  className="w-24 h-24 rounded-xl object-cover"
-                />
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {item.game}
-                  </h3>
-                  <p className="text-2xl font-bold text-blue-600 mt-2">
-                    ${item.price}
-                  </p>
-                </div>
+              {[
+                { id: "profile", name: "Profile", icon: Shield },
+                { id: "transactions", name: "Transactions", icon: History },
+                { id: "cart", name: "Cart", icon: ShoppingCart },
+                { id: "settings", name: "Settings", icon: Settings },
+              ].map((tab) => (
                 <button
-                  onClick={() => handleRemoveFromCart(item.id)}
-                  className="px-6 py-3 text-red-600 border-2 border-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                  key={tab.id}
+                  ref={(el) => (tabRefs.current[tab.id] = el)}
+                  onClick={() => handleChangeTab(tab.id)}
+                  className={`
+                    flex items-center px-3 py-4 text-sm font-medium whitespace-nowrap
+                    ${
+                      activeTab === tab.id
+                        ? "text-blue-600"
+                        : "text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }
+                  `}
                 >
-                  Remove
+                  <tab.icon className="w-5 h-5 mr-2" />
+                  {tab.name}
                 </button>
+              ))}
+              {/* Animated indicator */}
+              <div
+                className="absolute bottom-0 h-0.5 bg-blue-500 transition-all duration-300"
+                style={{
+                  left: `${indicatorStyle.left}px`,
+                  width: `${indicatorStyle.width}px`,
+                  transition: indicatorStyle.transition,
+                }}
+              ></div>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === "profile" && (
+              <div className="space-y-6">
+                {/* Personal Information */}
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    Personal Information
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Nama</p>
+                        <p className="text-gray-900">{displayName}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="text-gray-900">{userEmail}</p>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                          Verified
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Akun Telah Dibuat
+                        </p>
+                        <p className="text-gray-900">
+                          {joinDate.toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Crown className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-gray-900">Pelanggan</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Transactions */}
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    Recent Transactions
+                  </h2>
+                  <div className="space-y-4">
+                    {transactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="bg-gray-50 rounded-lg p-4"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {transaction.game}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Level {transaction.level}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {transaction.details}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-gray-900">
+                              Rp {transaction.price.toLocaleString()}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {transaction.date.toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </p>
+                            {renderStatus(transaction.status)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-8 space-y-4">
-            <div className="flex justify-between items-center bg-gray-50 p-6 rounded-xl">
-              <div className="text-xl text-gray-700">Total:</div>
-              <div className="text-3xl font-bold text-gray-900">
-                $
-                {cartItems
-                  .reduce((sum, item) => sum + item.price, 0)
-                  .toFixed(2)}
+            )}
+
+            {activeTab === "transactions" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Transaction History
+                  </h2>
+                  <button className="text-blue-600 hover:text-blue-700 font-medium">
+                    Download History
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="bg-gray-50 rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {transaction.game}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            Level {transaction.level}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {transaction.details}
+                          </p>
+                          {transaction.status === "success" && (
+                            <button className="mt-2 inline-flex items-center text-blue-600 hover:text-blue-700">
+                              <Download className="w-4 h-4 mr-1" />
+                              Download Details
+                            </button>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-gray-900">
+                            Rp {transaction.price.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {transaction.date.toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </p>
+                          {renderStatus(transaction.status)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <button className="w-full py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-xl font-semibold">
-              Proceed to Checkout
-            </button>
+            )}
+
+            {activeTab === "cart" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900">Cart</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between">
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {item.game}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            Level {item.level} • {item.details}
+                          </p>
+                          <div className="flex items-center mt-2">
+                            <Star className="w-4 h-4 text-yellow-400" />
+                            <Star className="w-4 h-4 text-yellow-400" />
+                            <Star className="w-4 h-4 text-yellow-400" />
+                            <Star className="w-4 h-4 text-yellow-400" />
+                            <Star className="w-4 h-4 text-gray-300" />
+                          </div>
+                        </div>
+                        <p className="font-medium text-gray-900">
+                          Rp {item.price.toLocaleString()}
+                        </p>
+                      </div>
+                      <button className="mt-4 w-full bg-blue-600 text-white rounded-md py-2 hover:bg-blue-700">
+                        Add to Cart
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "settings" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Settings
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Bell className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Notifications
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Manage notification preferences
+                        </p>
+                      </div>
+                    </div>
+                    <button className="text-blue-600 hover:text-blue-700 font-medium">
+                      Configure
+                    </button>
+                  </div>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Security Settings
+                </h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Lock className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium text-gray-900">Password</p>
+                        <p className="text-sm text-gray-500">
+                          Last changed 3 months ago
+                        </p>
+                      </div>
+                    </div>
+                    <button className="text-blue-600 hover:text-blue-700 font-medium">
+                      Change
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <Smartphone className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          Setting Akun
+                        </p>
+                        <p className="text-sm text-gray-500">Ubah Akun</p>
+                      </div>
+                    </div>
+                    <button className="text-blue-600 hover:text-blue-700 font-medium">
+                      Configure
+                    </button>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Recent Login Activity
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            Last Login
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {lastLogin.toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Jakarta, Indonesia
+                          </p>
+                        </div>
+                        <History className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button
-              onClick={handleBack}
-              className="flex items-center text-gray-600 hover:text-gray-900"
-            >
-              <FiArrowLeft className="w-6 h-6 mr-2" />
-              <span className="text-lg">Back to Home</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-red-600 hover:text-red-700"
-            >
-              <FiLogOut className="w-6 h-6 mr-2" />
-              <span className="text-lg">Logout</span>
-            </button>
-          </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex space-x-2 bg-white p-2 rounded-xl shadow-sm mb-8 sticky top-20 z-10">
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-lg font-medium transition-colors ${
-              activeTab === "profile"
-                ? "bg-blue-500 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <FiEdit2 className="w-5 h-5 mr-2" />
-            Profile
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-lg font-medium transition-colors ${
-              activeTab === "history"
-                ? "bg-blue-500 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <FiClock className="w-5 h-5 mr-2" />
-            History
-          </button>
-          <button
-            onClick={() => setActiveTab("cart")}
-            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg text-lg font-medium transition-colors ${
-              activeTab === "cart"
-                ? "bg-blue-500 text-white shadow-sm"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <FiShoppingCart className="w-5 h-5 mr-2" />
-            Cart ({cartItems.length})
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
-          {activeTab === "profile" && renderProfile()}
-          {activeTab === "history" && renderTransactions()}
-          {activeTab === "cart" && renderCart()}
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

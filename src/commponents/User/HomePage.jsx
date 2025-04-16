@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Header from "./ComponentHome/Header";
+import Header from "./Components/Header";
 import { motion } from "framer-motion";
 import axiosInstance from "../../../axios";
 
@@ -254,13 +254,6 @@ function HomePage() {
                       <span className="text-blue-600 text-xs font-medium">
                         #{post.game.replace(/\s+/g, "")}
                       </span>
-                    </div>
-
-                    {/* Tombol Ikuti */}
-                    <div className="flex justify-end mt-3">
-                      <button className="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-xs font-medium hover:bg-blue-200 transition">
-                        Ikuti
-                      </button>
                     </div>
                   </div>
                 </div>

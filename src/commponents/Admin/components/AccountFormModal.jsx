@@ -7,7 +7,7 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     game: "Genshin Impact",
-    server: "Asia",
+    game_server: "Asia",
     title: "",
     price: "",
     discount: "",
@@ -194,8 +194,10 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
       const data = new FormData();
 
       // Add basic fields
+      data.append("admin_id", formData.admin_id);
+
       data.append("game", formData.game);
-      data.append("server", formData.server);
+      data.append("game_server", formData.game_server);
       data.append("title", formData.title);
       data.append("price", formData.price);
       data.append("level", formData.level);
@@ -298,16 +300,16 @@ const AccountFormModal = ({ account, gameConfigs, onSave, onClose, title }) => {
                     Server
                   </label>
                   <select
-                    name="server"
-                    value={formData.server}
+                    name="game_server"
+                    value={formData.game_server}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {formData.game &&
                       gameConfigs[formData.game]?.serverOptions.map(
-                        (server) => (
-                          <option key={server} value={server}>
-                            {server}
+                        (game_server) => (
+                          <option key={game_server} value={game_server}>
+                            {game_server}
                           </option>
                         ),
                       )}

@@ -1,25 +1,52 @@
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Heart, ChevronRight, Star, Filter } from "lucide-react";
-import Header from "./ComponentHome/Header";
-import { Link } from "react-router-dom";
+import { ShoppingCart, Gamepad2 } from "lucide-react";
+import Header from "./Components/Header";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getPublicAccounts } from "../../services/accountservice";
-import { toast } from "react-toastify"; // Assuming you use react-toastify for notifications
+import { toast } from "react-toastify";
+
+// Import or define the formatPrice function
+export function formatPrice(price) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+  }).format(price);
+}
 
 function AccountGames() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Available games with their IDs
   const purchaseAccounts = [
-    { id: "Genshin Impact", name: "Genshin Impact" },
-    { id: "Honkai Star Rail", name: "Honkai Star Rail" },
-    { id: "Honkai Impact", name: "Honkai Impact" },
-    { id: "Zenless Zone Zero", name: "Zenless Zone Zero" },
+    { id: "genshin-impact", name: "Genshin Impact" },
+    { id: "honkai-star-rail", name: "Honkai Star Rail" },
+    { id: "honkai-impact", name: "Honkai Impact" },
+    { id: "zenless-zone-zero", name: "Zenless Zone Zero" },
   ];
 
-  const [sortMethod, setSortMethod] = useState("terbaru");
+  const [sortMethod, setSortMethod] = useState(
+    searchParams.get("sort") || "terbaru",
+  );
   const [accounts, setAccounts] = useState([]);
   const [filteredAccounts, setFilteredAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedGame, setSelectedGame] = useState("all");
+  const [selectedGame, setSelectedGame] = useState(
+    searchParams.get("game") || "all",
+  );
+
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (selectedGame !== "all") {
+      params.set("game", selectedGame);
+    }
+    if (sortMethod !== "terbaru") {
+      params.set("sort", sortMethod);
+    }
+    setSearchParams(params, { replace: true });
+  }, [selectedGame, sortMethod, setSearchParams]);
 
   // Fetch accounts on component mount
   useEffect(() => {
@@ -45,11 +72,19 @@ function AccountGames() {
 
   // Filter accounts based on selected game
   const filterAccounts = (accountsData, game) => {
+    if (!accountsData) return;
+
     if (game === "all") {
       setFilteredAccounts(accountsData);
     } else {
+      // Convert the game name with spaces to lowercase without spaces for comparison
+      const normalizedGame = game.toLowerCase().replace(/\s+/g, "");
       setFilteredAccounts(
-        accountsData.filter((account) => account.game === game),
+        accountsData.filter((account) => {
+          // Convert account game name to same format for comparison
+          const accountGame = account.game?.toLowerCase().replace(/\s+/g, "");
+          return accountGame === normalizedGame || account.game === game;
+        }),
       );
     }
   };
@@ -65,6 +100,8 @@ function AccountGames() {
 
   // Get sorted accounts based on sort method
   const getSortedAccounts = () => {
+    if (!filteredAccounts || filteredAccounts.length === 0) return [];
+
     let sorted = [...filteredAccounts];
 
     switch (sortMethod) {
@@ -101,6 +138,20 @@ function AccountGames() {
   // Handle sidebar filter click
   const handleSidebarClick = (gameName) => {
     setSelectedGame(gameName);
+  };
+
+  // Handle add to cart
+  const handleAddToCart = (account, event) => {
+    event.preventDefault(); // Prevent navigation
+    event.stopPropagation(); // Stop event bubbling
+
+    // Create and dispatch a custom event
+    const addToCartEvent = new CustomEvent("add-to-cart", {
+      detail: { item: account, quantity: 1 },
+    });
+    window.dispatchEvent(addToCartEvent);
+
+    toast.success(`${account.title} added to cart!`);
   };
 
   return (
@@ -151,16 +202,16 @@ function AccountGames() {
                 <div className="mt-6 text-xs text-gray-500">
                   <p>© 2025 GameAccounts</p>
                   <div className="flex flex-wrap mt-2">
-                    <a href="#" className="mr-2 hover:text-indigo-600">
+                    <a href="/terms" className="mr-2 hover:text-indigo-600">
                       Syarat & Ketentuan
                     </a>
-                    <a href="#" className="mr-2 hover:text-indigo-600">
+                    <a href="/privacy" className="mr-2 hover:text-indigo-600">
                       Kebijakan Privasi
                     </a>
-                    <a href="#" className="mr-2 hover:text-indigo-600">
+                    <a href="/help" className="mr-2 hover:text-indigo-600">
                       Bantuan
                     </a>
-                    <a href="#" className="hover:text-indigo-600">
+                    <a href="/contact" className="hover:text-indigo-600">
                       Kontak
                     </a>
                   </div>
@@ -271,9 +322,9 @@ function AccountGames() {
                     <Link
                       key={account.id}
                       to={`/product/${account.id}`}
-                      className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow"
+                      className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col h-full transform hover:-translate-y-1"
                     >
-                      <div className="h-48 overflow-hidden relative group">
+                      <div className="h-52 overflow-hidden relative">
                         <img
                           src={
                             account.images && account.images.length > 0
@@ -281,69 +332,118 @@ function AccountGames() {
                               : "/placeholder-account.png"
                           }
                           alt={`${account.game} account`}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                         />
-                        <div className="absolute inset-0 bg-black/70 bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <button className="bg-white text-blue-600 rounded-full p-2">
-                            <ShoppingCart className="h-5 w-5" />
-                          </button>
-                        </div>
-                        {account.discount &&
-                          account.discount < account.price && (
-                            <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                              PROMO
-                            </div>
-                          )}
-                        {account.stock <= 0 && (
-                          <div className="absolute bottom-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                            SOLD OUT
+
+                        {/* Badges overlay */}
+                        <div className="absolute top-0 left-0 w-full p-3 flex justify-between">
+                          <div className="flex gap-2">
+                            {account.discount &&
+                              account.discount < account.price && (
+                                <div className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                                  PROMO
+                                </div>
+                              )}
+                            {account.stock <= 0 && (
+                              <div className="bg-gray-800 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                                SOLD OUT
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="text-sm font-semibold text-blue-600">
-                            {account.game}
-                          </div>
-                          <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                          <div className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
                             {account.level}
                           </div>
                         </div>
-                        <h3 className="font-semibold text-lg mb-2">
+
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end justify-center">
+                          <div className="w-full py-3 px-4 text-white">
+                            <span className="inline-flex items-center gap-1 text-sm font-medium">
+                              <Gamepad2 className="w-4 h-4" />
+                              View Details
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-5 flex-grow flex flex-col">
+                        {/* Game tag and store badge */}
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                            {account.game}
+                          </span>
+                          <div className="text-xs font-medium text-gray-600 flex items-center gap-1">
+                            <span>by</span>
+                            <span className="font-semibold text-gray-800">
+                              {account.admin.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="font-bold text-gray-800 text-lg mb-3 line-clamp-2">
                           {account.title}
                         </h3>
 
-                        <div className="mb-3">
-                          <ul className="text-xs text-gray-600">
-                            {Array.isArray(account.features) &&
-                              account.features.slice(0, 3).map((feature, i) => (
-                                <li key={i} className="flex items-center mb-1">
-                                  <div className="h-1 w-1 bg-blue-500 rounded-full mr-2"></div>
-                                  {feature}
-                                </li>
-                              ))}
-                          </ul>
+                        {/* Features */}
+                        <div className="mb-4 flex-grow">
+                          {Array.isArray(account.features) &&
+                          account.features.length > 0 ? (
+                            <ul className="space-y-2">
+                              {account.features
+                                .slice(0, 3)
+                                .map((feature, i) => (
+                                  <li
+                                    key={i}
+                                    className="flex items-center text-sm text-gray-600"
+                                  >
+                                    <div className="h-2 w-2 bg-blue-500 rounded-full mr-2 flex-shrink-0"></div>
+                                    <span className="line-clamp-1">
+                                      {feature}
+                                    </span>
+                                  </li>
+                                ))}
+                            </ul>
+                          ) : (
+                            <p className="text-sm text-gray-500 italic">
+                              No features listed
+                            </p>
+                          )}
                         </div>
-                        <div className="flex items-center justify-between mt-4">
+
+                        {/* Price and cart button */}
+                        <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
                           <div>
                             {account.discount &&
                             account.discount < account.price ? (
-                              <div className="flex items-center">
-                                <span className="text-gray-400 line-through text-sm mr-2">
-                                  Rp {account.price.toLocaleString("id-ID")}
+                              <div className="flex flex-col">
+                                <span className="text-gray-400 line-through text-xs">
+                                  {formatPrice(account.price)}
                                 </span>
                                 <span className="font-bold text-lg text-blue-600">
-                                  Rp {account.discount.toLocaleString("id-ID")}
+                                  {formatPrice(account.discount)}
                                 </span>
                               </div>
                             ) : (
                               <span className="font-bold text-lg text-blue-600">
-                                Rp {account.price.toLocaleString("id-ID")}
+                                {formatPrice(account.price)}
                               </span>
                             )}
                           </div>
-                          <button className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-full transition-colors">
+
+                          <button
+                            className={`rounded-full p-2 transition-colors flex items-center gap-2 ${
+                              account.stock <= 0
+                                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                            }`}
+                            onClick={(e) => handleAddToCart(account, e)}
+                            disabled={account.stock <= 0}
+                          >
                             <ShoppingCart className="h-5 w-5" />
+                            <span className="text-sm font-medium mr-1">
+                              Add
+                            </span>
                           </button>
                         </div>
                       </div>

@@ -36,6 +36,16 @@ function DataGameAccount() {
 
   // Game-specific configurations
  const gameConfigs = {
+   "Honkai Impact 3D": {
+     levels: Array.from({ length: 80 }, (_, i) => `Captain ${i + 1}`), // Captain 1 sampai Captain 80
+     features: [
+       "Character SSS",
+       "Weapon 5★",
+       "Colab Character",
+       "High Crystals",
+     ],
+     serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
+   },
    "Genshin Impact": {
      levels: Array.from({ length: 60 }, (_, i) => `AR ${i + 1}`), // AR 1 sampai AR 60
      features: [
@@ -51,7 +61,7 @@ function DataGameAccount() {
      features: [
        "Character 5★",
        "Light Cone 5★",
-       "Limited Character",
+       "Colab Character",
        "High Stellar Jade",
      ],
      serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
@@ -63,16 +73,6 @@ function DataGameAccount() {
        "Hollow 5★",
        "Limited Bangboo",
        "High Polychrome",
-     ],
-     serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
-   },
-   "Honkai Impact 3D": {
-     levels: Array.from({ length: 80 }, (_, i) => `Captain ${i + 1}`), // Captain 1 sampai Captain 80
-     features: [
-       "Character 5★",
-       "Weapon 5★",
-       "Limited Character",
-       "High Crystals",
      ],
      serverOptions: ["Asia", "Europe", "America", "TW/HK/MO"],
    },
@@ -192,7 +192,7 @@ function DataGameAccount() {
 
     // Server filter
     const matchesServer =
-      serverFilter === "All Servers" || account.server === serverFilter;
+      serverFilter === "All Servers" || account.game_server === serverFilter;
 
     return matchesSearch && matchesGame && matchesServer;
   });
@@ -278,6 +278,9 @@ function DataGameAccount() {
                     Account Details
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created By
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Credentials
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -303,14 +306,14 @@ function DataGameAccount() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div
-                          className="h-14 w-14 flex-shrink-0 cursor-pointer"
+                          className="aspect-[20/9] w-28 flex-shrink-0 cursor-pointer"
                           onClick={() => openDetailAccount(account)}
                         >
                           <img
-                            className="h-14 w-14 rounded-md object-cover"
+                            className=" w-full h-full rounded-md object-cover"
                             src={
                               account.images && account.images.length > 0
-                                ? account.images[0]
+                                ? account.images[0] 
                                 : "/placeholder-account.png"
                             }
                             alt={account.title}
@@ -331,6 +334,9 @@ function DataGameAccount() {
                           </div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {account.admin ? account.admin.name : "Unknown"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
@@ -356,7 +362,7 @@ function DataGameAccount() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {account.server}
+                        {account.game_server}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

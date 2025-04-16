@@ -56,6 +56,9 @@ export const endpoints = {
   detail: {
     detailAccount: "/api/sellaccount",
   },
+  cart: {
+    cart: "/api/cart",
+  },
   crudArticle: {
     list: "/api/articles",
     articles: "/api/articles",
@@ -63,6 +66,15 @@ export const endpoints = {
     delete: (id) => `/api/articles/${id}`,
     articleToggleStatus: (id) => `/api/articles/toggle-status/${id}`,
   },
+  
+  chat: {
+    base: "/chats", // Base endpoint
+    // This function generates the endpoint for getting messages between a user and seller for a specific product
+    getMessages: (accountId, receiverId) => `/chats/${accountId}/${receiverId}`,
+    send: "/chats",
+    updateStatus: (id) => `/chats/${id}/status`,
+  },
+
   crudAcccount: {
     list: "/api/sellaccount",
     detail: (id) => `/api/sellaccount/${id}`,

@@ -10,7 +10,7 @@ function Hero() {
     if (isLoading) return; // tunggu data selesai loading
 
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate("/");
       return;
     }
 

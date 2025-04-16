@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAccountById } from "../../services/accountservice";
+import axiosInstance, { endpoints } from "../../../axios";
 import {
   ArrowLeft,
   MessageSquare,
   ShieldCheck,
   Minus,
   Plus,
-  Star,
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
@@ -18,6 +18,9 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { formatPrice } from "../format";
+import { useUser } from "../../context/UserContext"; // Updated to use UserContext
+import ChatModal from "./Components/ChatModal"; // Import the ChatModal component
+import Cookies from "js-cookie"; // Import js-cookie for checking userId
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -28,6 +31,8 @@ const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const { isAuthenticated } = useUser(); // Get authentication status from UserContext
 
   useEffect(() => {
     // Reset states when ID changes
@@ -37,7 +42,6 @@ const ProductDetail = () => {
     setLoading(true);
     setError(null);
 
-    // In ProductDetail.jsx
     const fetchAccountData = async () => {
       try {
         console.log("Fetching account with ID:", id);
@@ -56,40 +60,99 @@ const ProductDetail = () => {
     fetchAccountData();
   }, [id]);
 
-  const addItem = (item, qty) => {
-    const existingCartItems =
-      JSON.parse(localStorage.getItem("cartItems")) || [];
-    const existingItemIndex = existingCartItems.findIndex(
-      (cartItem) => cartItem.id === item.id,
-    );
-
-    let updatedCartItems = existingCartItems.map((cartItem) =>
-      cartItem.id === item.id
-        ? { ...cartItem, quantity: cartItem.quantity + qty }
-        : cartItem,
-    );
-
-    if (!existingCartItems.some((cartItem) => cartItem.id === item.id)) {
-      updatedCartItems.push({ ...item, quantity: qty });
+  // Handle chat button click
+  const handleChatButtonClick = () => {
+    if (!isAuthenticated) {
+      toast.error("Anda harus login untuk mengirim pesan");
+      navigate("/login", { state: { from: `/product/${id}` } });
+      return;
     }
-
-    localStorage.setItem("cartItems", JSON.stringify(updatedCartItems));
-    window.dispatchEvent(
-      new CustomEvent("add-to-cart", { detail: { item, quantity: qty } }),
-    );
-
-    toast.success(`${item.title} ditambahkan ke keranjang!`, {
-      position: "top-right",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "colored",
-    });
+    setShowChatModal(true);
   };
 
+  // Updated to use the API instead of localStorage
+  // Updated addItem function
+  const addItem = async (item, qty) => {
+    try {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        toast.error("Anda harus login untuk menambahkan item ke keranjang");
+        navigate("/login", { state: { from: `/product/${id}` } });
+        return;
+      }
 
+      // Calculate the correct price (discount or regular)
+      const priceToUse = item.discount || item.price;
+
+      // Call the cart API endpoint to add item
+      await axiosInstance.post(endpoints.cart.cart, {
+        sellaccount_id: item.id,
+        quantity: qty,
+        price: priceToUse, // Send the price to use
+      });
+
+      // Dispatch event for any cart component that's listening
+      window.dispatchEvent(
+        new CustomEvent("add-to-cart", { detail: { item, quantity: qty } }),
+      );
+
+      toast.success(`${item.title} ditambahkan ke keranjang!`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: "colored",
+      });
+    } catch (err) {
+      console.error("Failed to add item to cart:", err);
+      toast.error("Gagal menambahkan item ke keranjang");
+    }
+  };
+
+  // Updated proceedToCheckout function
+  const proceedToCheckout = async (item, qty) => {
+    try {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        toast.error("Anda harus login untuk melanjutkan ke checkout");
+        navigate("/login", { state: { from: `/product/${id}` } });
+        return;
+      }
+
+      // Calculate the correct price (discount or regular)
+      const priceToUse = item.discount || item.price;
+
+      // First add the item to cart
+      await axiosInstance.post(endpoints.cart.cart, {
+        sellaccount_id: item.id,
+        quantity: qty,
+        price: item.price,
+        discount_price: item.discount || null,
+      });
+
+      // Create a checkout item format matching what checkout expects
+      const checkoutItem = {
+        id: Date.now(), // temporary ID for checkout
+        quantity: qty,
+        sellaccount: {
+          ...item,
+          discount_price: item.discount || null,
+          price: item.price,
+        },
+      };
+
+      // Store just this item in session storage for checkout
+      sessionStorage.setItem("checkoutItems", JSON.stringify([checkoutItem]));
+
+      // Navigate to checkout
+      navigate("/cart/checkout");
+    } catch (err) {
+      console.error("Failed to proceed to checkout:", err);
+      toast.error("Gagal melanjutkan ke checkout");
+    }
+  };
 
   const handleQuantityChange = (delta) => {
     setQuantity((prev) => {
@@ -114,15 +177,35 @@ const ProductDetail = () => {
     }
   };
 
- if (!account) {
-   return (
-     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-       <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-     </div>
-   );
- }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!account) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-medium text-gray-700">
+            Akun tidak ditemukan
+          </h2>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            Kembali
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const images = account?.images || [account?.image];
+  const sellerId = account?.admin?.id;
+  const sellerName = account?.admin?.name || "Admin Store";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -147,6 +230,15 @@ const ProductDetail = () => {
       </nav>
 
       <ToastContainer />
+
+      {/* Chat Modal */}
+      <ChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        account={account}
+        receiverId={sellerId}
+        receiverName={sellerName}
+      />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-wrap gap-4">
@@ -224,9 +316,15 @@ const ProductDetail = () => {
               <div className="bg-white rounded-xl p-4 shadow-sm">
                 <h3 className="text-sm text-gray-500 mb-1">Server</h3>
                 <p className="text-lg font-semibold text-gray-900">
-                  {account.details?.server || account.server}
+                  {account.details?.game_server || account.game_server}
                 </p>
               </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm text-gray-500 mb-1">Store</h3>
+              <p className="text-lg font-semibold text-gray-900">
+                {account.admin?.name || "Official Store"}
+              </p>
             </div>
           </div>
 
@@ -341,7 +439,10 @@ const ProductDetail = () => {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <button className="p-4 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+                  <button
+                    onClick={handleChatButtonClick}
+                    className="p-4 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                  >
                     <MessageSquare className="w-6 h-6 text-gray-600" />
                   </button>
                   <button

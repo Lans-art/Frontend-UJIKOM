@@ -17,9 +17,10 @@ import Cookies from "js-cookie";
 // Games list for filter dropdown
 const games = [
   "All Games",
-  "Zenless Zone Zero",
-  "Honkai Star Rail",
+  "Honkai Impact 3rd",
   "Genshin Impact",
+  "Honkai Star Rail",
+  "Zenless Zone Zero",
 ];
 const statuses = ["All Statuses", "published", "draft"];
 
@@ -470,16 +471,11 @@ function DataArticle() {
     }
   };
 
-  if (loading)
-    return <div className="text-center p-8">Loading articles...</div>;
-  if (error) return <div className="text-center p-8 text-red-500">{error}</div>;
-
   return (
     <div className="bg-gray-50 p-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Manajemen Article</h1>
         <div className="flex space-x-4">
-          
           <button
             className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
             onClick={() => setModalOpen(true)}
@@ -580,7 +576,65 @@ function DataArticle() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredArticles.length > 0 ? (
+              {loading ? (
+                // Show loading state inside the table
+                <tr>
+                  <td colSpan="6" className="px-6 py-12">
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      <svg
+                        className="animate-spin h-8 w-8 text-indigo-500 mb-4"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <p className="text-sm font-medium">Loading articles...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                // Show error state inside the table
+                <tr>
+                  <td colSpan="6" className="px-6 py-8 text-center">
+                    <div className="flex flex-col items-center justify-center text-red-500">
+                      <svg
+                        className="h-8 w-8 mb-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                      </svg>
+                      <p className="font-medium text-sm">{error}</p>
+                      <button
+                        onClick={fetchArticles}
+                        className="mt-3 px-4 py-2 bg-indigo-600 text-white text-xs rounded-md hover:bg-indigo-700"
+                      >
+                        Coba Lagi
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredArticles.length > 0 ? (
                 filteredArticles.map((article) => (
                   <tr key={article.id}>
                     <td className="px-6 py-4 whitespace-nowrap">

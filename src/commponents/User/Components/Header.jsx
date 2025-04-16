@@ -9,7 +9,6 @@ import {
   X,
   LogOut,
 } from "lucide-react";
-import axios from "axios";
 import Cookies from "js-cookie";
 import axiosInstance from "../../../../axios";
 
@@ -32,29 +31,47 @@ function Header() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
     const path = window.location.pathname;
     const activeItem = menuItems.find((item) =>
-      path.includes(item.path.slice(1))
+      path.includes(item.path.slice(1)),
     );
     setActivePage(activeItem ? activeItem.name.toLowerCase() : "home");
 
-    const updateCartCount = () => {
-      const cartItems = JSON.parse(localStorage.getItem("cartItems") || "[]");
-      const totalItems = cartItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
-      setCartItemCount(totalItems);
+    // Fetch cart count from API
+    const fetchCartCount = async () => {
+      try {
+        const response = await axiosInstance.get("/api/cart");
+        if (response.data && Array.isArray(response.data)) {
+          const totalItems = response.data.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          );
+          setCartItemCount(totalItems);
+        }
+      } catch (error) {
+        console.error("Failed to fetch cart count:", error);
+      }
     };
 
-    updateCartCount();
+    fetchCartCount();
+
+    // Setup event listener for cart updates
+    const updateCartCount = async () => {
+      await fetchCartCount();
+    };
+
+    window.addEventListener("cart-updated", updateCartCount);
     window.addEventListener("add-to-cart", updateCartCount);
-    return () => window.removeEventListener("add-to-cart", updateCartCount);
+
+    return () => {
+      window.removeEventListener("cart-updated", updateCartCount);
+      window.removeEventListener("add-to-cart", updateCartCount);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -64,7 +81,7 @@ function Header() {
         {},
         {
           headers: { Authorization: `Bearer ${Cookies.get("token")}` },
-        }
+        },
       );
       Cookies.remove("token");
       window.location.href = "/";
@@ -74,11 +91,11 @@ function Header() {
   };
 
   return (
-    <header 
+    <header
       className={`sticky w-full top-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/80 backdrop-blur-md shadow-lg' 
-          : 'bg-white shadow-sm'
+        isScrolled
+          ? "bg-white/80 backdrop-blur-md shadow-lg"
+          : "bg-white shadow-sm"
       }`}
     >
       <div className="container mx-auto px-4 py-3">
@@ -99,16 +116,22 @@ function Header() {
                 }`}
               >
                 <div className="relative flex items-center justify-center transition-transform group-hover:scale-110">
-                  <Icon className={`h-6 w-6 transition-all duration-300 ${
-                    activePage === name.toLowerCase() ? "stroke-2" : "stroke-1"
-                  }`} />
+                  <Icon
+                    className={`h-6 w-6 transition-all duration-300 ${
+                      activePage === name.toLowerCase()
+                        ? "stroke-2"
+                        : "stroke-1"
+                    }`}
+                  />
                   {name === "Cart" && cartItemCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
                       {cartItemCount}
                     </span>
                   )}
                 </div>
-                <span className="mt-1 text-xs font-medium opacity-90">{name}</span>
+                <span className="mt-1 text-xs font-medium opacity-90">
+                  {name}
+                </span>
                 {activePage === name.toLowerCase() && (
                   <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-indigo-600 rounded-full transform scale-x-100 transition-transform duration-300" />
                 )}
@@ -121,7 +144,9 @@ function Header() {
               <div className="transition-transform group-hover:scale-110">
                 <LogOut className="h-6 w-6" />
               </div>
-              <span className="mt-1 text-xs font-medium opacity-90">Logout</span>
+              <span className="mt-1 text-xs font-medium opacity-90">
+                Logout
+              </span>
             </button>
           </nav>
 
@@ -139,7 +164,9 @@ function Header() {
 
         <div
           className={`md:hidden fixed inset-x-0 top-[60px] bg-white/80 backdrop-blur-md shadow-lg transition-all duration-300 transform ${
-            showMobileMenu ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+            showMobileMenu
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-full opacity-0"
           }`}
         >
           <nav className="container mx-auto py-4 px-4">

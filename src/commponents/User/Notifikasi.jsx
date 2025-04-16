@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
-import Header from "./ComponentHome/Header";
-import { ArrowLeft, Calendar, ChevronDown, Search, Truck, X, AlertCircle, CreditCard } from "lucide-react";
+import Header from "./Components/Header";
+import {
+  ArrowLeft,
+  Calendar,
+  ChevronDown,
+  Search,
+  Truck,
+  X,
+  AlertCircle,
+  CreditCard,
+} from "lucide-react";
 
 const tabs = [
   "Semua",
@@ -31,30 +40,32 @@ function Notifikasi() {
         name: "Diamond Mobile Legends",
         game: "Mobile Legends",
         quantity: "100 Diamond",
-        image: "/api/placeholder/100/100"
+        image: "/api/placeholder/100/100",
       },
       shipping: "Pengiriman Instan",
       features: ["Promo", "Cashback"],
-      price: "Rp 50.000"
-    }
+      price: "Rp 50.000",
+    },
   ];
 
   const refundMethods = [
     {
       id: "wallet",
       name: "E-Wallet",
-      description: "Dana dikembalikan ke e-wallet Anda dalam 1x24 jam"
+      description: "Dana dikembalikan ke e-wallet Anda dalam 1x24 jam",
     },
     {
       id: "bank",
       name: "Transfer Bank",
-      description: "Dana dikembalikan ke rekening bank Anda dalam 2-3 hari kerja"
+      description:
+        "Dana dikembalikan ke rekening bank Anda dalam 2-3 hari kerja",
     },
     {
       id: "credit",
       name: "Kredit Akun",
-      description: "Dana dikembalikan sebagai kredit untuk pembelian berikutnya"
-    }
+      description:
+        "Dana dikembalikan sebagai kredit untuk pembelian berikutnya",
+    },
   ];
 
   useEffect(() => {
@@ -96,12 +107,12 @@ function Notifikasi() {
           ...purchase,
           status: "Pembatalan Pesanan",
           cancelReason: cancelReason,
-          cancelDate: new Date().toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+          cancelDate: new Date().toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
           }),
-          needsRefund: true
+          needsRefund: true,
         };
       }
       return purchase;
@@ -111,7 +122,7 @@ function Notifikasi() {
     setShowCancelModal(false);
     setCancelReason("");
     setCancelSuccess(true);
-    
+
     // Show refund modal after cancellation
     setTimeout(() => {
       setCancelSuccess(false);
@@ -130,14 +141,14 @@ function Notifikasi() {
           ...purchase,
           status: "Dana Dikembalikan",
           refundMethod: selectedRefundMethod,
-          refundDate: new Date().toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+          refundDate: new Date().toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
           }),
           needsRefund: false,
           refundStatus: "Sedang Diproses",
-          estimatedRefundDate: getEstimatedRefundDate(selectedRefundMethod)
+          estimatedRefundDate: getEstimatedRefundDate(selectedRefundMethod),
         };
       }
       return purchase;
@@ -147,7 +158,7 @@ function Notifikasi() {
     setShowRefundModal(false);
     setSelectedRefundMethod("");
     setRefundSuccess(true);
-    
+
     // Hide success message after 3 seconds
     setTimeout(() => {
       setRefundSuccess(false);
@@ -157,7 +168,7 @@ function Notifikasi() {
   const getEstimatedRefundDate = (method) => {
     const today = new Date();
     let estimatedDate = new Date();
-    
+
     if (method === "wallet") {
       estimatedDate.setDate(today.getDate() + 1);
     } else if (method === "bank") {
@@ -165,11 +176,11 @@ function Notifikasi() {
     } else {
       estimatedDate = today;
     }
-    
-    return estimatedDate.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
+
+    return estimatedDate.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   };
 
@@ -186,13 +197,13 @@ function Notifikasi() {
     "Menemukan harga lebih murah",
     "Salah pilih produk",
     "Berubah pikiran",
-    "Lainnya"
+    "Lainnya",
   ];
 
   const handleRefundRequest = (purchase) => {
     setCurrentPurchase(purchase);
     setShowRefundModal(true);
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -204,8 +215,16 @@ function Notifikasi() {
         {cancelSuccess && (
           <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 flex items-center shadow-lg">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-green-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
@@ -217,12 +236,22 @@ function Notifikasi() {
         {refundSuccess && (
           <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50 flex items-center shadow-lg">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-green-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium">Permintaan pengembalian dana sedang diproses</p>
+              <p className="text-sm font-medium">
+                Permintaan pengembalian dana sedang diproses
+              </p>
             </div>
           </div>
         )}
@@ -232,15 +261,17 @@ function Notifikasi() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
             <div className="bg-white rounded-xl max-w-md w-full shadow-xl">
               <div className="p-5 border-b flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Batalkan Pesanan</h3>
-                <button 
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Batalkan Pesanan
+                </h3>
+                <button
                   onClick={() => setShowCancelModal(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="p-5">
                 <div className="flex gap-4 mb-5 pb-5 border-b">
                   <img
@@ -249,30 +280,44 @@ function Notifikasi() {
                     className="w-16 h-16 rounded-lg object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">{currentPurchase?.product.name}</h4>
-                    <p className="text-sm text-gray-600">{currentPurchase?.product.game}</p>
-                    <p className="text-sm text-gray-600">{currentPurchase?.product.quantity}</p>
+                    <h4 className="font-medium">
+                      {currentPurchase?.product.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {currentPurchase?.product.game}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {currentPurchase?.product.quantity}
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="mb-5">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Alasan Pembatalan
                   </label>
                   <div className="space-y-2">
                     {cancelReasons.map((reason, index) => (
-                      <div 
+                      <div
                         key={index}
                         className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                          cancelReason === reason ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+                          cancelReason === reason
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 hover:border-gray-300"
                         }`}
                         onClick={() => setCancelReason(reason)}
                       >
                         <div className="flex items-center">
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            cancelReason === reason ? 'border-orange-500' : 'border-gray-400'
-                          }`}>
-                            {cancelReason === reason && <div className="w-2 h-2 rounded-full bg-orange-500"></div>}
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              cancelReason === reason
+                                ? "border-orange-500"
+                                : "border-gray-400"
+                            }`}
+                          >
+                            {cancelReason === reason && (
+                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                            )}
                           </div>
                           <span className="ml-3 text-sm">{reason}</span>
                         </div>
@@ -280,7 +325,7 @@ function Notifikasi() {
                     ))}
                   </div>
                 </div>
-                
+
                 {cancelReason === "Lainnya" && (
                   <div className="mb-5">
                     <textarea
@@ -294,7 +339,9 @@ function Notifikasi() {
 
                 <div className="p-3 bg-blue-50 rounded-lg mb-5">
                   <p className="text-sm text-blue-700">
-                    <span className="font-medium">Catatan:</span> Setelah pembatalan, Anda akan diminta untuk memilih metode pengembalian dana.
+                    <span className="font-medium">Catatan:</span> Setelah
+                    pembatalan, Anda akan diminta untuk memilih metode
+                    pengembalian dana.
                   </p>
                 </div>
 
@@ -307,7 +354,9 @@ function Notifikasi() {
                   </button>
                   <button
                     className={`flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors ${
-                      cancelReason ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      cancelReason
+                        ? "bg-orange-500 text-white hover:bg-orange-600"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
                     }`}
                     onClick={confirmCancelOrder}
                     disabled={!cancelReason}
@@ -325,15 +374,17 @@ function Notifikasi() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
             <div className="bg-white rounded-xl max-w-md w-full shadow-xl">
               <div className="p-5 border-b flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Pengembalian Dana</h3>
-                <button 
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Pengembalian Dana
+                </h3>
+                <button
                   onClick={() => setShowRefundModal(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              
+
               <div className="p-5">
                 <div className="flex gap-4 mb-5 pb-5 border-b">
                   <img
@@ -342,34 +393,52 @@ function Notifikasi() {
                     className="w-16 h-16 rounded-lg object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">{currentPurchase?.product.name}</h4>
-                    <p className="text-sm text-gray-600">{currentPurchase?.product.game}</p>
-                    <p className="text-orange-500 font-medium">{currentPurchase?.price}</p>
+                    <h4 className="font-medium">
+                      {currentPurchase?.product.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {currentPurchase?.product.game}
+                    </p>
+                    <p className="text-orange-500 font-medium">
+                      {currentPurchase?.price}
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="mb-5">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Pilih Metode Pengembalian Dana
                   </label>
                   <div className="space-y-3">
                     {refundMethods.map((method) => (
-                      <div 
+                      <div
                         key={method.id}
                         className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                          selectedRefundMethod === method.id ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+                          selectedRefundMethod === method.id
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 hover:border-gray-300"
                         }`}
                         onClick={() => setSelectedRefundMethod(method.id)}
                       >
                         <div className="flex items-center">
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            selectedRefundMethod === method.id ? 'border-orange-500' : 'border-gray-400'
-                          }`}>
-                            {selectedRefundMethod === method.id && <div className="w-2 h-2 rounded-full bg-orange-500"></div>}
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              selectedRefundMethod === method.id
+                                ? "border-orange-500"
+                                : "border-gray-400"
+                            }`}
+                          >
+                            {selectedRefundMethod === method.id && (
+                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                            )}
                           </div>
                           <div className="ml-3">
-                            <span className="text-sm font-medium">{method.name}</span>
-                            <p className="text-xs text-gray-500 mt-1">{method.description}</p>
+                            <span className="text-sm font-medium">
+                              {method.name}
+                            </span>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {method.description}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -386,7 +455,9 @@ function Notifikasi() {
                   </button>
                   <button
                     className={`flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors ${
-                      selectedRefundMethod ? 'bg-orange-500 text-white hover:bg-orange-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      selectedRefundMethod
+                        ? "bg-orange-500 text-white hover:bg-orange-600"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
                     }`}
                     onClick={processRefund}
                     disabled={!selectedRefundMethod}
@@ -510,26 +581,46 @@ function Notifikasi() {
                   </div>
 
                   {/* Cancellation Reason (if cancelled) */}
-                  {purchase.status === "Pembatalan Pesanan" && purchase.cancelReason && (
-                    <div className="mt-3 p-3 bg-red-50 rounded-lg flex items-start gap-2">
-                      <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-red-700">Alasan Pembatalan:</p>
-                        <p className="text-sm text-red-600">{purchase.cancelReason}</p>
-                        <p className="text-xs text-gray-500 mt-1">Dibatalkan pada {purchase.cancelDate}</p>
+                  {purchase.status === "Pembatalan Pesanan" &&
+                    purchase.cancelReason && (
+                      <div className="mt-3 p-3 bg-red-50 rounded-lg flex items-start gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-red-700">
+                            Alasan Pembatalan:
+                          </p>
+                          <p className="text-sm text-red-600">
+                            {purchase.cancelReason}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Dibatalkan pada {purchase.cancelDate}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Refund Info (if refunded) */}
                   {purchase.status === "Dana Dikembalikan" && (
                     <div className="mt-3 p-3 bg-yellow-50 rounded-lg flex items-start gap-2">
                       <CreditCard className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-yellow-700">Status Pengembalian Dana:</p>
-                        <p className="text-sm text-yellow-600">{purchase.refundStatus}</p>
-                        <p className="text-xs text-gray-500 mt-1">Metode: {refundMethods.find(m => m.id === purchase.refundMethod)?.name}</p>
-                        <p className="text-xs text-gray-500">Estimasi selesai: {purchase.estimatedRefundDate}</p>
+                        <p className="text-sm font-medium text-yellow-700">
+                          Status Pengembalian Dana:
+                        </p>
+                        <p className="text-sm text-yellow-600">
+                          {purchase.refundStatus}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Metode:{" "}
+                          {
+                            refundMethods.find(
+                              (m) => m.id === purchase.refundMethod,
+                            )?.name
+                          }
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Estimasi selesai: {purchase.estimatedRefundDate}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -564,7 +655,7 @@ function Notifikasi() {
                     </div>
                     <div className="flex gap-3">
                       {canCancel(purchase.status) && (
-                        <button 
+                        <button
                           className="px-6 py-2.5 border-2 border-red-500 text-red-500 rounded-xl font-medium hover:bg-red-50 transition-colors duration-200"
                           onClick={() => handleCancelOrder(purchase)}
                         >
@@ -572,7 +663,7 @@ function Notifikasi() {
                         </button>
                       )}
                       {canRequestRefund(purchase) && (
-                        <button 
+                        <button
                           className="px-6 py-2.5 border-2 border-yellow-500 text-yellow-500 rounded-xl font-medium hover:bg-yellow-50 transition-colors duration-200"
                           onClick={() => handleRefundRequest(purchase)}
                         >

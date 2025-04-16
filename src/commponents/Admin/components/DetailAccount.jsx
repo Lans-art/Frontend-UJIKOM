@@ -149,6 +149,13 @@ const DetailAccount = ({
                 </div>
               </div>
 
+              <div>
+                <div className="text-sm text-gray-500">Created By</div>
+                <div className="text-base font-medium">
+                  {account.admin ? account.admin.name : "Unknown"}
+                </div>
+              </div>
+
               <div className="mb-4">
                 <div className="text-sm text-gray-500 mb-1">
                   Login Credentials

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Shield, Info, ArrowLeft, CreditCard, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Link, useLocation } from "react-router-dom";
-import Header from "./ComponentHome/Header";
+import Header from "./Components/Header";
 
 function Checkout() {
   const navigate = useNavigate();

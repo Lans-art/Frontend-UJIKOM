@@ -41,22 +41,22 @@ const App = () => {
           <Route path="/" element={<LandingPage />} />
 
           {/* Proteksi halaman admin */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminPage />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="dataartikel" element={<DataArticle />} />
-            <Route path="dataaccount" element={<DataGameAccount />} />
-            <Route path="confirmaccount" element={<ConfirmAccounts />} />
-            <Route path="history" element={<History />} />
-            <Route path="admin/profile" element={<AdminProfile />} />
-          </Route>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminPage />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="dataartikel" element={<DataArticle />} />
+              <Route path="dataaccount" element={<DataGameAccount />} />
+              <Route path="confirmaccount" element={<ConfirmAccounts />} />
+              <Route path="history" element={<History />} />
+              <Route path="admin/profile" element={<AdminProfile />} />
+            </Route>
 
           {/* Proteksi halaman user */}
           <Route

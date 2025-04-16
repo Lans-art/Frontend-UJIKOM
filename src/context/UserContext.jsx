@@ -26,7 +26,10 @@ export const UserProvider = ({ children }) => {
     console.log(token, role, name);
 
     if (token && role) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      axiosInstance.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${token}`;
+
 
       // Jangan langsung set userData lengkap, biarkan fetchUserData yang atur
       setUserData((prev) => ({
@@ -90,13 +93,13 @@ export const UserProvider = ({ children }) => {
 
       // Store data in cookies
       if (typeof role !== "undefined" && role !== null) {
-        Cookies.set("role", role, { expires: 30 });
+        Cookies.set("role", role, { expires: 1 });
       }
       console.log("Login success - role:", role);
 
-      Cookies.set("token", token, { expires: 30 });
+      Cookies.set("token", token, { expires: 1 });
       if (name || user?.name) {
-        Cookies.set("name", name || user.name, { expires: 30 });
+        Cookies.set("name", name || user.name, { expires: 1 });
       }
 
       // Set auth header

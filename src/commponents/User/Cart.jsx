@@ -8,7 +8,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import Header from "./ComponentHome/Header";
+import Header from "./Components/Header";
+import axiosInstance, { endpoints } from "../../../axios";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -19,86 +20,138 @@ const Cart = () => {
   const location = useLocation();
   const [checkedItems, setCheckedItems] = useState({});
   const [selectAll, setSelectAll] = useState(false);
+  const dispatchCartUpdateEvent = () => {
+    // Create and dispatch a custom event that Header will listen for
+    const event = new CustomEvent("cart-updated", {
+      detail: { timestamp: new Date().getTime() },
+    });
+    window.dispatchEvent(event);
+  };
 
-  useEffect(() => {
-    setTimeout(() => {
-      const mockCartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
-      setCartItems(mockCartItems);
+  // Fetch cart items from Laravel backend
+  const fetchCartItems = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axiosInstance.get(endpoints.cart.cart);
+      const items = response.data;
 
-      // Initialize checkedItems state with all items unchecked
+      // Transform data untuk memastikan konsistensi field dan pilih harga yang benar
+      const transformedItems = items.map((item) => {
+        if (item.sellaccount) {
+          const sell = item.sellaccount;
+
+          // Jika hanya ada "discount", ubah jadi "discount_price"
+          if (sell.discount && !sell.discount_price) {
+            sell.discount_price = sell.discount;
+          }
+
+          // Tambahkan field baru "final_price" untuk memudahkan di UI
+          sell.final_price = sell.discount_price ?? sell.price;
+        }
+
+        return item;
+      });
+
+      console.log("Cart data from API:", transformedItems);
+      setCartItems(transformedItems);
+
+      // (Opsional) Inisialisasi checked items
       const initialCheckedState = {};
-      mockCartItems.forEach((item) => {
+      transformedItems.forEach((item) => {
         initialCheckedState[item.id] = false;
       });
       setCheckedItems(initialCheckedState);
 
       setIsLoading(false);
-    }, 500);
+    } catch (error) {
+      console.error("Failed to fetch cart items:", error);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCartItems();
 
     window.addEventListener("add-to-cart", handleAddToCartEvent);
     return () =>
       window.removeEventListener("add-to-cart", handleAddToCartEvent);
   }, []);
 
-  const handleAddToCartEvent = (event) => {
+  const handleAddToCartEvent = async (event) => {
     const { item, quantity } = event.detail;
-    addItemToCart(item, quantity);
+    await addItemToCart(item, quantity);
     setAnimatingItem(item.id);
     setTimeout(() => setAnimatingItem(null), 1000);
   };
 
-  const addItemToCart = (item, quantity) => {
-    setCartItems((prevItems) => {
-      const existingItemIndex = prevItems.findIndex(
-        (cartItem) => cartItem.id === item.id,
-      );
-      let newItems;
-
-      if (existingItemIndex >= 0) {
-        newItems = [...prevItems];
-        newItems[existingItemIndex].quantity += quantity;
-      } else {
-        newItems = [...prevItems, { ...item, quantity }];
-        // Add the new item to checkedItems (unchecked by default)
-        setCheckedItems((prev) => ({
-          ...prev,
-          [item.id]: false,
-        }));
-      }
-
-      localStorage.setItem("cartItems", JSON.stringify(newItems));
-      return newItems;
-    });
-  };
-
-  const removeItem = (itemId) => {
-    setCartItems((prevItems) => {
-      const newItems = prevItems.filter((item) => item.id !== itemId);
-      localStorage.setItem("cartItems", JSON.stringify(newItems));
-
-      // Also remove from checkedItems
-      setCheckedItems((prev) => {
-        const newChecked = { ...prev };
-        delete newChecked[itemId];
-        return newChecked;
+  const addItemToCart = async (item, quantity) => {
+    try {
+      await axiosInstance.post(endpoints.cart.cart, {
+        sellaccount_id: item.id,
+        quantity: quantity,
       });
 
-      return newItems;
-    });
+      // Refresh cart data
+      fetchCartItems();
+    } catch (error) {
+      console.error("Failed to add item to cart:", error);
+    }
   };
 
-  const updateQuantity = (itemId, delta) => {
-    setCartItems((prevItems) => {
-      const newItems = prevItems.map((item) => {
-        if (item.id === itemId) {
-          const newQuantity = item.quantity + delta;
-          return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
-        }
-        return item;
+  const removeItem = async (itemId) => {
+    try {
+      await axiosInstance.delete(`${endpoints.cart.cart}/${itemId}`);
+
+      // Update local state
+      setCartItems((prevItems) => {
+        const newItems = prevItems.filter((item) => item.id !== itemId);
+
+        // Also remove from checkedItems
+        setCheckedItems((prev) => {
+          const newChecked = { ...prev };
+          delete newChecked[itemId];
+          return newChecked;
+        });
+
+        return newItems;
       });
-      localStorage.setItem("cartItems", JSON.stringify(newItems));
-      return newItems;
-    });
+
+      // Dispatch event to update cart count in header
+      dispatchCartUpdateEvent();
+    } catch (error) {
+      console.error("Failed to remove item from cart:", error);
+    }
+  };
+
+  const updateQuantity = async (itemId, delta) => {
+    const item = cartItems.find((item) => item.id === itemId);
+    if (!item) return;
+
+    const newQuantity = item.quantity + delta;
+    if (newQuantity <= 0) return;
+
+    try {
+      // Make sure to send the price information when updating quantity
+      const priceToUse =
+        item.sellaccount.discount_price || item.sellaccount.price;
+
+      await axiosInstance.put(`${endpoints.cart.cart}/${itemId}`, {
+        quantity: newQuantity,
+        price: priceToUse,
+      });
+
+      // Update local state for immediate feedback
+      setCartItems((prevItems) => {
+        return prevItems.map((item) => {
+          if (item.id === itemId) {
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        });
+      });
+    } catch (error) {
+      console.error("Failed to update item quantity:", error);
+    }
   };
 
   const toggleItemCheck = (itemId) => {
@@ -127,7 +180,10 @@ const Cart = () => {
   const calculateSubtotal = () => {
     const checked = getCheckedItems();
     return checked.reduce((total, item) => {
-      const price = item.discount || item.price;
+      // Make sure we access sellaccount safely
+      if (!item.sellaccount) return total;
+
+      const price = item.sellaccount.discount_price || item.sellaccount.price;
       return total + price * item.quantity;
     }, 0);
   };
@@ -140,9 +196,8 @@ const Cart = () => {
       return;
     }
 
-    // Save only checked items for checkout
-    localStorage.setItem("checkoutItems", JSON.stringify(checkedItemsArray));
-
+    // Store checked items in session storage for checkout page
+    sessionStorage.setItem("checkoutItems", JSON.stringify(checkedItemsArray));
     navigate("/cart/checkout");
   };
 
@@ -156,6 +211,23 @@ const Cart = () => {
     const allChecked = cartItems.every((item) => checkedItems[item.id]);
     setSelectAll(allChecked);
   }, [checkedItems, cartItems]);
+
+  const clearCart = async () => {
+    try {
+      // Remove all items from cart
+      const deletePromises = cartItems.map((item) =>
+        axiosInstance.delete(`${endpoints.cart.cart}/${item.id}`),
+      );
+
+      await Promise.all(deletePromises);
+
+      // Update local state
+      setCartItems([]);
+      setCheckedItems({});
+    } catch (error) {
+      console.error("Failed to clear cart:", error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -184,7 +256,8 @@ const Cart = () => {
             <Link
               to="/keranjang"
               className={`text-gray-400 hover:text-blue-600 ${
-                location.pathname === "/cart"
+                location.pathname === "/cart" ||
+                location.pathname === "/keranjang"
                   ? "text-blue-600 pointer-events-none"
                   : ""
               }`}
@@ -232,11 +305,7 @@ const Cart = () => {
                   <span className="text-gray-700 font-medium">Pilih Semua</span>
                 </div>
                 <button
-                  onClick={() => {
-                    setCartItems([]);
-                    setCheckedItems({});
-                    localStorage.removeItem("cartItems");
-                  }}
+                  onClick={clearCart}
                   className="text-red-500 hover:text-red-600 font-medium transition-colors"
                 >
                   Hapus Semua
@@ -265,114 +334,128 @@ const Cart = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`bg-white rounded-xl p-4 shadow-sm transition-all duration-300 ${
-                      animatingItem === item.id ? "scale-105" : ""
-                    }`}
-                  >
-                    <div className="flex items-start space-x-4">
-                      <input
-                        type="checkbox"
-                        checked={checkedItems[item.id] || false}
-                        onChange={() => toggleItemCheck(item.id)}
-                        className="mt-2 w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
-                      />
+                {cartItems.map((item) => {
+                  // Check if sellaccount exists before rendering
+                  if (!item.sellaccount) {
+                    console.error("Missing sellaccount data for item:", item);
+                    return null;
+                  }
 
-                      <img
-                        src={
-                          item.image ||
-                          item.images?.[0] ||
-                          "/api/placeholder/76/76"
-                        }
-                        alt={item.title}
-                        className="w-20 h-20 rounded-lg object-cover"
-                      />
+                  const sellaccount = item.sellaccount;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`bg-white rounded-xl p-4 shadow-sm transition-all duration-300 ${
+                        animatingItem === item.id ? "scale-105" : ""
+                      }`}
+                    >
+                      <div className="flex items-start space-x-4">
+                        <input
+                          type="checkbox"
+                          checked={checkedItems[item.id] || false}
+                          onChange={() => toggleItemCheck(item.id)}
+                          className="mt-2 w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                        />
 
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3
-                              className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
-                              onClick={() =>
-                                item?.id && navigate(`/product/${item.id}`)
-                              }
-                            >
-                              {item?.title || "Produk Tanpa Nama"}
-                            </h3>
-                            <p className="text-gray-500 text-sm mt-1">
-                              {item.game}
-                            </p>
-                          </div>
-                          <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-                            Anti Hackback
-                          </span>
-                        </div>
+                        <img
+                          src={
+                            sellaccount.image ||
+                            (sellaccount.images && sellaccount.images[0]) ||
+                            "/api/placeholder/76/76"
+                          }
+                          alt={sellaccount.title}
+                          className="w-20 h-20 rounded-lg object-cover"
+                        />
 
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="space-y-1">
-                            <span className="text-lg font-bold text-gray-900">
-                              Rp{" "}
-                              {(item.discount || item.price).toLocaleString(
-                                "id-ID",
-                              )}
-                            </span>
-                            {item.discount && (
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-500 line-through">
-                                  Rp {item.price.toLocaleString("id-ID")}
-                                </span>
-                                <span className="text-sm text-green-600">
-                                  -
-                                  {Math.round(
-                                    ((item.price - item.discount) /
-                                      item.price) *
-                                      100,
-                                  )}
-                                  %
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center space-x-4">
-                            <span className="text-red-500 border border-red-500 rounded px-2 py-1 text-sm">
-                              Stok: {item.stock}
-                            </span>
-
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-
-                            <div className="flex items-center border rounded-lg bg-gray-50">
-                              <button
-                                onClick={() => updateQuantity(item.id, -1)}
-                                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50"
-                                disabled={item.quantity <= 1}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3
+                                className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer"
+                                onClick={() =>
+                                  sellaccount?.id &&
+                                  navigate(`/product/${sellaccount.id}`)
+                                }
                               >
-                                <Minus className="w-4 h-4" />
-                              </button>
-                              <span className="w-12 text-center font-medium">
-                                {item.quantity}
+                                {sellaccount?.title || "Produk Tanpa Nama"}
+                              </h3>
+                              <p className="text-gray-500 text-sm mt-1">
+                                {sellaccount.game}
+                              </p>
+                            </div>
+                            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
+                              Anti Hackback
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="space-y-1">
+                              <span className="text-lg font-bold text-gray-900">
+                                Rp{" "}
+                                {(
+                                  sellaccount.discount || sellaccount.price
+                                ).toLocaleString("id-ID")}
                               </span>
+                              {sellaccount.discount && (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm text-gray-500 line-through">
+                                    Rp{" "}
+                                    {sellaccount.price.toLocaleString("id-ID")}
+                                  </span>
+                                  <span className="text-sm text-green-600">
+                                    -
+                                    {Math.round(
+                                      ((sellaccount.price -
+                                        sellaccount.discount) /
+                                        sellaccount.price) *
+                                        100,
+                                    )}
+                                    %
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center space-x-4">
+                              <span className="text-red-500 border border-red-500 rounded px-2 py-1 text-sm">
+                                Stok: {sellaccount.stock}
+                              </span>
+
                               <button
-                                onClick={() => updateQuantity(item.id, 1)}
-                                className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50"
-                                disabled={item.quantity >= (item.stock || 99)}
+                                onClick={() => removeItem(item.id)}
+                                className="text-gray-400 hover:text-red-500 transition-colors"
                               >
-                                <Plus className="w-4 h-4" />
+                                <Trash2 className="w-5 h-5" />
                               </button>
+
+                              <div className="flex items-center border rounded-lg bg-gray-50">
+                                <button
+                                  onClick={() => updateQuantity(item.id, -1)}
+                                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50"
+                                  disabled={item.quantity <= 1}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <span className="w-12 text-center font-medium">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(item.id, 1)}
+                                  className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50"
+                                  disabled={
+                                    item.quantity >= (sellaccount.stock || 99)
+                                  }
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
