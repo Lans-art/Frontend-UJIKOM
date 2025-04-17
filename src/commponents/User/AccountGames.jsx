@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { ShoppingCart, Gamepad2 } from "lucide-react";
-import Header from "./Components/Header";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getPublicAccounts } from "../../services/accountservice";
 import { toast } from "react-toastify";
@@ -157,7 +156,6 @@ function AccountGames() {
   return (
     <>
       <div className="bg-gray-50 min-h-screen">
-        <Header />
         <div className="container mx-auto px-4">
           <h1 className="text-3xl font-bold my-8">Akun Game</h1>
 

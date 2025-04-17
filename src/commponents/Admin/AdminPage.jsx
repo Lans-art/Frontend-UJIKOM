@@ -41,8 +41,8 @@ function AdminPage() {
   const sidebarLinks = [
     { key: "admin", path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     {
-      key: "profile",
-      path: "/admin/admin/profile",
+      key: "profil",
+      path: "/profil",
       icon: UserCircle,
       label: "Profile",
     },

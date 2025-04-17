@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Header from "./Components/Header";
 import { motion } from "framer-motion";
 import axiosInstance from "../../../axios";
 
@@ -101,7 +100,6 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
       <main className="container mx-auto px-4 py-6 md:flex">
         {/* Left Sidebar - Game Categories */}
         <aside className="hidden md:block w-64 pr-8">

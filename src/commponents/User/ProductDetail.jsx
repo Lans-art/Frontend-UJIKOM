@@ -20,7 +20,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { formatPrice } from "../format";
 import { useUser } from "../../context/UserContext"; // Updated to use UserContext
 import ChatModal from "./Components/ChatModal"; // Import the ChatModal component
-import Cookies from "js-cookie"; // Import js-cookie for checking userId
 
 const ProductDetail = () => {
   const { id } = useParams();

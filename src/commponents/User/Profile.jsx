@@ -3,25 +3,17 @@ import { useNavigate } from "react-router-dom";
 import {
   Shield,
   Mail,
-  Phone,
   Calendar,
   Bell,
   ShoppingCart,
-  Heart,
-  Ticket,
   Settings,
   LogOut,
   MessageCircle,
-  Gift,
   Crown,
   CheckCircle2,
   AlertCircle,
   Clock,
   Download,
-  Star,
-  Moon,
-  Sun,
-  ChevronRight,
   Lock,
   Smartphone,
   History,
@@ -70,15 +62,7 @@ function Profile() {
     },
   ];
 
-  const cartItems = [
-    {
-      id: 1,
-      game: "PUBG Mobile Account",
-      level: 70,
-      price: 1500000,
-      details: "Royal Pass",
-    },
-  ];
+  
 
   const handleBack = () => {
     navigate("/home");
@@ -86,7 +70,7 @@ function Profile() {
 
   const handleLogout = () => {
     logout();
-    navigate("/home");
+    navigate("/");
   };
 
   // Update the indicator position when activeTab changes
@@ -227,7 +211,6 @@ function Profile() {
               {[
                 { id: "profile", name: "Profile", icon: Shield },
                 { id: "transactions", name: "Transactions", icon: History },
-                { id: "cart", name: "Cart", icon: ShoppingCart },
                 { id: "settings", name: "Settings", icon: Settings },
               ].map((tab) => (
                 <button
@@ -266,7 +249,7 @@ function Profile() {
                 {/* Personal Information */}
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                    Personal Information
+                    Informasi Pribadi
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center space-x-3">
@@ -409,41 +392,6 @@ function Profile() {
               </div>
             )}
 
-            {activeTab === "cart" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900">Cart</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {item.game}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            Level {item.level} • {item.details}
-                          </p>
-                          <div className="flex items-center mt-2">
-                            <Star className="w-4 h-4 text-yellow-400" />
-                            <Star className="w-4 h-4 text-yellow-400" />
-                            <Star className="w-4 h-4 text-yellow-400" />
-                            <Star className="w-4 h-4 text-yellow-400" />
-                            <Star className="w-4 h-4 text-gray-300" />
-                          </div>
-                        </div>
-                        <p className="font-medium text-gray-900">
-                          Rp {item.price.toLocaleString()}
-                        </p>
-                      </div>
-                      <button className="mt-4 w-full bg-blue-600 text-white rounded-md py-2 hover:bg-blue-700">
-                        Add to Cart
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {activeTab === "settings" && (
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold text-gray-900">
@@ -499,33 +447,7 @@ function Profile() {
                       Configure
                     </button>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Recent Login Activity
-                    </h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            Last Login
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {lastLogin.toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Jakarta, Indonesia
-                          </p>
-                        </div>
-                        <History className="w-5 h-5 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
+                  
                 </div>
               </div>
             )}

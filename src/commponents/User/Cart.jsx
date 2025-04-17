@@ -8,7 +8,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import Header from "./Components/Header";
 import axiosInstance, { endpoints } from "../../../axios";
 
 const Cart = () => {
@@ -241,7 +240,6 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
       {/* Modern Navigation */}
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">

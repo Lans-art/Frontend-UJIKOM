@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Shield, Info, ArrowLeft, CreditCard, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Link, useLocation } from "react-router-dom";
-import Header from "./Components/Header";
 
 function Checkout() {
   const navigate = useNavigate();
@@ -224,7 +223,6 @@ function Checkout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
       {/* Modern Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">

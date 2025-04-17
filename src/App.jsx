@@ -9,7 +9,6 @@ import LandingPage from "./commponents/LandingPage";
 /* Halaman Admin */
 import AdminPage from "./commponents/Admin/AdminPage";
 import Dashboard from "./commponents/Admin/Dashboard";
-import Chat from "./commponents/Admin/Chat";
 import DataGameAccount from "./commponents/Admin/DataGameAccount";
 import ConfirmAccounts from "./commponents/Admin/ConfirmAccounts";
 import DataArticle from "./commponents/Admin/DataArticle";
@@ -17,6 +16,7 @@ import History from "./commponents/Admin/History";
 import AdminProfile from "./commponents/Admin/Profile";
 
 /* Halaman User */
+import UserLayout from "./commponents/User/UserLayout";
 import HomePage from "./commponents/User/HomePage";
 import AccountGames from "./commponents/User/AccountGames";
 import ProductDetail from "./commponents/User/ProductDetail";
@@ -41,69 +41,48 @@ const App = () => {
           <Route path="/" element={<LandingPage />} />
 
           {/* Proteksi halaman admin */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminPage />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="chat" element={<Chat />} />
-              <Route path="dataartikel" element={<DataArticle />} />
-              <Route path="dataaccount" element={<DataGameAccount />} />
-              <Route path="confirmaccount" element={<ConfirmAccounts />} />
-              <Route path="history" element={<History />} />
-              <Route path="admin/profile" element={<AdminProfile />} />
-            </Route>
+          {/* Admin routes - corrected */}
+          <Route
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/dataartikel" element={<DataArticle />} />
+            <Route path="/admin/dataaccount" element={<DataGameAccount />} />
+            <Route path="/admin/confirmaccount" element={<ConfirmAccounts />} />
+            <Route path="/admin/history" element={<History />} />
+          </Route>
+          <Route
+            path="/profil"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminProfile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Proteksi halaman user */}
           <Route
-            path="/home"
             element={
               <ProtectedRoute allowedRoles={["user"]}>
-                <HomePage />
+                <UserLayout />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/accountgames"
-            element={
-              <ProtectedRoute allowedRoles={["user"]}>
-                <AccountGames />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/accountgames" element={<AccountGames />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/cart/checkout" element={<Checkout />} />
+            <Route path="/notifikasi" element={<Notifikasi />} />
+          </Route>
           <Route
             path="/product/:id"
             element={
               <ProtectedRoute allowedRoles={["user"]}>
                 <ProductDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cart"
-            element={
-              <ProtectedRoute allowedRoles={["user"]}>
-                <Cart />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/cart/checkout"
-            element={
-              <ProtectedRoute allowedRoles={["user"]}>
-                <Checkout />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/notifikasi"
-            element={
-              <ProtectedRoute allowedRoles={["user"]}>
-                <Notifikasi />
               </ProtectedRoute>
             }
           />
